@@ -1,17 +1,23 @@
 import Link from 'next/link';
-import { Settings } from 'lucide-react';
+import { Settings, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ChatInterface } from '@/components/ChatInterface';
 
 export default function Home() {
   return (
     <div className="relative min-h-screen flex flex-col">
-      {/* Admin Button - Top Left */}
-      <div className="absolute top-4 left-4 z-50">
+      {/* Top Left Buttons */}
+      <div className="absolute top-4 left-4 z-50 flex gap-2">
         <Link href="/admin/settings">
           <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur-sm shadow-sm hover:bg-muted" title="Admin Settings">
             <Settings className="h-5 w-5" />
             <span className="sr-only">Admin Settings</span>
+          </Button>
+        </Link>
+        <Link href="/translator">
+          <Button variant="outline" size="icon" className="bg-background/80 backdrop-blur-sm shadow-sm hover:bg-muted" title="Translator">
+            <Languages className="h-5 w-5" />
+            <span className="sr-only">Translator</span>
           </Button>
         </Link>
       </div>
