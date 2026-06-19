@@ -120,3 +120,159 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ─── Synonym clickable words ─── */
+
+.synonym-word {
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0 2px;
+  margin: 0 -2px;
+  transition: all 0.15s ease;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+}
+
+.synonym-word:hover {
+  background-color: var(--accent);
+  text-decoration-color: var(--primary);
+}
+
+.synonym-word-active {
+  background-color: var(--accent);
+  text-decoration-color: var(--primary);
+  text-decoration-style: solid;
+}
+
+/* ─── Synonym popover ─── */
+
+.synonym-popover {
+  min-width: 180px;
+  max-width: 260px;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 4px 24px -4px oklch(0 0 0 / 12%),
+    0 2px 8px -2px oklch(0 0 0 / 8%);
+  animation: synonym-popover-in 0.18s ease-out;
+  overflow: hidden;
+}
+
+.dark .synonym-popover {
+  box-shadow:
+    0 4px 24px -4px oklch(0 0 0 / 40%),
+    0 2px 8px -2px oklch(0 0 0 / 25%);
+}
+
+@keyframes synonym-popover-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.synonym-popover-arrow {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 10px;
+  height: 10px;
+  background: var(--popover);
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
+}
+
+.synonym-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
+}
+
+.synonym-popover-body {
+  padding: 4px;
+}
+
+.synonym-popover-loading,
+.synonym-popover-error,
+.synonym-popover-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.synonym-popover-error {
+  color: var(--destructive);
+}
+
+.synonym-popover-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.synonym-popover-item {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-align: left;
+  border: none;
+  background: none;
+  color: var(--popover-foreground);
+  cursor: pointer;
+  border-radius: calc(var(--radius) - 4px);
+  transition: background-color 0.12s ease;
+}
+
+.synonym-popover-item:hover {
+  background-color: var(--accent);
+}
+
+.synonym-popover-item:active {
+  background-color: var(--muted);
+}
+
+/* ─── Sidebar package items ─── */
+
+.sidebar-package-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: calc(var(--radius) - 2px);
+  transition: background-color 0.12s ease;
+  gap: 8px;
+}
+
+.sidebar-package-item:hover {
+  background-color: var(--accent);
+}
+
+.sidebar-package-item:active {
+  background-color: var(--muted);
+}
+

@@ -3,6 +3,8 @@
 import { useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { SendHorizonal } from 'lucide-react';
 
 interface ChatInputProps {
     value: string;
@@ -42,6 +44,7 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProp
     return (
         <form onSubmit={handleSubmit} className="flex gap-2">
             <Textarea
+                id="chat-message-input"
                 ref={textareaRef}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
@@ -51,9 +54,21 @@ export function ChatInput({ value, onChange, onSubmit, disabled }: ChatInputProp
                 rows={1}
                 onKeyDown={handleKeyDown}
             />
-            <Button type="submit" disabled={disabled || !value.trim()}>
-                Send
-            </Button>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button
+                        id="send-message-button"
+                        type="submit"
+                        disabled={disabled || !value.trim()}
+                        size="icon"
+                        className="shrink-0 h-10 w-10"
+                    >
+                        <SendHorizonal className="h-4 w-4" />
+                        <span className="sr-only">Send</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send message</TooltipContent>
+            </Tooltip>
         </form>
     );
 }

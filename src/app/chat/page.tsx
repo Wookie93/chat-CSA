@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { useChat, useAutoScroll } from './hooks';
 import { ChatMessage, ChatMessageLoading } from './ChatMessage';
@@ -36,7 +37,8 @@ export default function ChatPage() {
           </ScrollArea>
         </CardContent>
 
-        <div className="p-4 border-t">
+        <Separator />
+        <div className="p-4">
           <ChatInput
             value={input}
             onChange={setInput}
