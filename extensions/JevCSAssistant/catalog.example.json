@@ -1,0 +1,9 @@
+{
+  "version": "TEST-1",
+  "currency": "PLN",
+  "approved": false,
+  "items": [
+    {"id":"xyz","name":"TEST — broń XYZ","unit":"shot","priceGrosz":500,"quantities":[5,10,15,20],"aliases":["XYZ"]},
+    {"id":"abc","name":"TEST — broń ABC","unit":"shot","priceGrosz":700,"quantities":[5,10,15,20],"aliases":["ABC"]}
+  ]
+}

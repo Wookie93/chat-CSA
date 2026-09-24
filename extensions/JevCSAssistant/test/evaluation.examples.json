@@ -1,0 +1,10 @@
+[
+  {"id":"basic-two","text":"Proszę o wycenę: dwie osoby, dla każdej pakiet Basic.","expected":{"people":2,"billingPeople":2,"totalGrosz":40000,"quoteStatus":"complete","quote":true,"availability":false}},
+  {"id":"single-glock","text":"Proszę o wycenę zestawu: Glock 20 strzałów.","expected":{"billingPeople":1,"totalGrosz":21000,"quoteStatus":"complete","quote":true}},
+  {"id":"colt-blocks","text":"Jedna osoba: Colt 1911 tactical, 14 strzałów. Ile zapłacę?","expected":{"people":1,"billingPeople":1,"totalGrosz":21000,"quoteStatus":"complete"}},
+  {"id":"bad-shot-count","text":"Ile kosztuje dla jednej osoby 15 strzałów z Glocka?","expected":{"people":1,"totalGrosz":null,"quoteStatus":"invalid"}},
+  {"id":"package-plus-gun","text":"Wycena dla jednej osoby: Basic i dodatkowo 20 strzałów z Glocka.","expected":{"people":1,"totalGrosz":32000,"quoteStatus":"complete"}},
+  {"id":"two-different","text":"Dwie osoby: pierwsza chce Glock 20 strzałów, druga pakiet VIP. Poproszę o cenę.","expected":{"people":2,"billingPeople":2,"totalGrosz":64000,"quoteStatus":"complete"}},
+  {"id":"missing-quantity","text":"Poproszę o cenę dla jednej osoby, chce postrzelać z Glocka.","expected":{"people":1,"totalGrosz":null,"quoteStatus":"incomplete"}},
+  {"id":"ppsh-alias","text":"Jedna osoba, PPSh-41 10 strzałów. Proszę policzyć.","expected":{"people":1,"totalGrosz":15000,"quoteStatus":"complete"}}
+]

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "revision": 1,
+  "publishedAt": "2026-09-24T00:00:00.000Z",
+  "catalog": {
+    "version": "initial",
+    "currency": "PLN",
+    "approved": false,
+    "items": []
+  },
+  "templates": {
+    "pl": "Dzień dobry,\n\n{{wycena}}\n\n{{dostepnosc}}\n\n{{pytania}}",
+    "en": "Hello,\n\n{{wycena}}\n\n{{dostepnosc}}\n\n{{pytania}}"
+  },
+  "availabilityPolicy": {
+    "staffing": "unconfirmed",
+    "proposals": "unconfirmed",
+    "allowFinishAfterClosing": false
+  },
+  "replyTemplates": []
+}
