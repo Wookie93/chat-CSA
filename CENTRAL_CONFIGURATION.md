@@ -10,7 +10,7 @@ Pierwszy etap ma ręczne publikowanie przez polecenie administracyjne i ręczne 
 
 ## Uruchomienie
 
-1. W projekcie Supabase aplikacji wykonaj `supabase/migrations/20260924_shared_configuration.sql` (SQL Editor lub dotychczasowy proces migracji). Tabela ma RLS i nie daje dostępu klientom `anon`/`authenticated`. Serwer używa istniejącego `SUPABASE_SERVICE_ROLE_KEY`.
+1. W projekcie Supabase aplikacji wykonaj `supabase/migrations/20261001191526_shared_configuration.sql` (SQL Editor lub dotychczasowy proces migracji). Tabela ma RLS i nie daje dostępu klientom `anon`/`authenticated`. Serwer używa istniejącego `SUPABASE_SERVICE_ROLE_KEY`.
 2. Wygeneruj osobny losowy token, np. `openssl rand -hex 32`. Wstaw go do zmiennej środowiskowej **CONFIG_READ_TOKEN** w Vercel. Nie używaj klucza Supabase jako tokenu. Nie zapisuj tokenu w repo, adresie URL ani wiadomości. Istniejące `NEXT_PUBLIC_SUPABASE_URL` i `SUPABASE_SERVICE_ROLE_KEY` muszą pozostać skonfigurowane.
 3. Wdróż zmianę aplikacji. Endpoint `GET /api/configuration` wymaga `Authorization: Bearer <token>`. Brak tokenu serwera daje 503, błędny token żądania 401, brak publikacji 404. Błędy bazy nie ujawniają szczegółów klientowi. Żaden endpoint zapisu nie jest publicznie dodawany.
 4. Przygotuj plik `configuration.json`: najlepiej z przycisku „Eksportuj konfigurację do publikacji” w nowej wtyczce. Eksportuje zapisane ustawienia, więc najpierw zapisz formularz. Sprawdź treści wzorców: allowlista usuwa pola sekretów, ale nie rozpoznaje sekretu ręcznie wklejonego w treść. Alternatywnie skopiuj `configuration.example.json` i uzupełnij dane. Przykład ma `approved=false` i niepotwierdzone reguły — wymaga sprawdzenia przez operatora.
@@ -57,3 +57,20 @@ Pełna kompilacja istniejącej aplikacji wymaga konfiguracji Supabase (strona `/
 - Kompilacja produkcyjna Next.js: OK z lokalną atrapą Supabase; brak połączenia z produkcyjną bazą.
 - Skompilowany endpoint na localhost: 401 bez tokenu i z błędnym tokenem; 200 z poprawnym tokenem i Cache-Control no-store; POST 405.
 - Nie przeprowadzono instalacji tej wersji w rzeczywistym Chrome ani migracji produkcyjnego Supabase.
+
+## Stan wdrożenia Supabase — 1 października 2026
+
+Projekt potwierdzony przez właściciela: **Wookie93's Project**, `exvrpixcylbyisgnjmtm`.
+
+- Zastosowano migrację `20261001191526_shared_configuration` przez połączoną integrację Supabase. Lokalny plik ma teraz tę samą wersję co historia zdalnej bazy. Nie wykonuj ponownie CREATE TABLE w tym projekcie.
+- Dodano publikację nr 1 z katalogu `CSA-2026-09-21` (62 pozycje), wzorców PL/EN i domyślnych reguł z repozytorium.
+- `catalog.approved=false`: cennik wymaga weryfikacji. `staffing` i `proposals` pozostają `unconfirmed`. Ich zatwierdzenie powinno nastąpić w kolejnej publikacji po ustaleniu poprawnych wartości.
+- Biblioteka ręcznych wzorców `replyTemplates` jest pusta: wzorce zapisane w przeglądarce nie są dostępne w repo. Należy je wyeksportować z właściwej instalacji i uwzględnić w kolejnej publikacji przed przełączeniem tej biblioteki na centralną.
+- Zweryfikowano RLS, brak SELECT/INSERT dla `anon` oraz `authenticated`, SELECT/INSERT i brak UPDATE/DELETE dla `service_role`. Odczyt najnowszej konfiguracji po `SET LOCAL ROLE service_role` zakończył się powodzeniem.
+- Kontrola endpointu produkcyjnego `https://chat-csa.vercel.app/api/configuration` zwróciła 404. Baza jest przygotowana, ale aplikacja wymaga jeszcze wdrożenia gałęzi oraz ustawienia `CONFIG_READ_TOKEN` w Vercel. Nie wykonano testu end-to-end Chrome → aplikacja → produkcyjne Supabase.
+
+### Wynik Supabase Security Advisors
+
+Informacja [RLS Enabled No Policy](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) dla nowej tabeli jest oczekiwana: dostęp jest wyłącznie serwerowy przez `service_role`, a klientom celowo nie nadano polityk ani uprawnień.
+
+W istniejących funkcjach `handle_new_user` i `update_updated_at_column` wykryto [nieustawiony search_path](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable). Doradca zgłosił również wykonanie `handle_new_user` jako SECURITY DEFINER dla [anon](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable) i [authenticated](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable). To istniejące elementy obsługi kont, nieutworzone przez tę migrację; wymagają osobnego przeglądu definicji i zależności. Nie zmieniano ich w ramach centralizacji.
