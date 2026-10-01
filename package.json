@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:central": "node --test test/central.test.mjs",
+    "test:extension": "node --test extensions/JevCSAssistant/test/"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.77",

@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <title>JevCSAssistant</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header>
+    <h1>JevCSAssistant</h1>
+    <button id="btnUstawienia" class="link" type="button">Ustawienia</button>
+  </header>
+
+  <nav class="zakladki" role="tablist">
+    <button role="tab" class="zakladka aktywna" data-panel="jev">Jev — obsługa maila</button>
+    <button role="tab" class="zakladka" data-panel="pakiet">Policz pakiet</button>
+    <button role="tab" class="zakladka" data-panel="dostepnosc">Dostępność</button>
+    <button role="tab" class="zakladka" data-panel="tlumacz">Tłumacz</button>
+    <button role="tab" class="zakladka" data-panel="wzorce">Wzorce</button>
+    <button role="tab" class="zakladka" data-panel="semiauto">Semi-auto</button>
+  </nav>
+
+  <div id="banerBledu" class="baner ukryty"></div>
+  <div id="banerKonfig" class="baner ukryty"></div>
+
+  <section id="panel-jev" class="panel">
+    <label for="jevInput">Wiadomość klienta</label>
+    <textarea id="jevInput" rows="7" placeholder="Wczytaj wątek Gmaila lub wklej wiadomość…"></textarea>
+    <div class="rzad"><button id="jevRead" class="wtorny">Wczytaj wątek</button><button id="jevAnalyze" class="glowny">Analizuj i przygotuj odpowiedź</button></div>
+    <p id="jevStatus" class="opis" role="status" aria-live="polite">Jev rozpoznaje zamówienie, kalkulator liczy ceny, kalendarz sprawdza termin.</p>
+    <div class="siatka">
+      <label>Data wizyty<input id="jevDate" type="date"></label>
+      <label>Godzina (opcjonalnie)<input id="jevTime" type="time"></label>
+      <label>Liczba osób<input id="jevPeople" type="number" min="1" max="30"></label>
+      <label>Czas wizyty (min)<input id="jevDuration" type="number" min="1" max="480"></label>
+    </div>
+    <div id="jevParticipants"></div>
+    <details><summary>Zaawansowana edycja zamówienia</summary><label for="jevOrder">Dane zamówienia (JSON)</label><textarea id="jevOrder" rows="14" spellcheck="false"></textarea></details><button id="jevRecalculate" class="wtorny">Przelicz poprawione dane</button>
+    <label for="jevReply">Odpowiedź do sprawdzenia</label><textarea id="jevReply" rows="12"></textarea>
+    <button id="jevRedact" class="wtorny" disabled>Dodaj powitanie i zakończenie przez LLM</button>
+    <button id="jevDraft" class="glowny" disabled>Wstaw draft do wątku</button>
+    <details><summary>Dane, wyniki narzędzi i koszt</summary><pre id="jevDetails" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details>
+  </section>
+
+  <!-- ───────── Policz pakiet ───────── -->
+  <section id="panel-pakiet" class="panel ukryty">
+    <label for="pakietWejscie">Treść zapytania klienta</label>
+    <textarea id="pakietWejscie" rows="8" placeholder="Wklej tu treść maila z zapytaniem o pakiet…"></textarea>
+    <div class="rzad">
+      <button id="pakietZWatku" class="wtorny" type="button">Wczytaj z otwartego wątku</button>
+      <button id="pakietLicz" class="glowny" type="button">Policz</button>
+    </div>
+    <div id="pakietWynik" class="wynik ukryty"></div>
+  </section>
+
+  <!-- ───────── Dostępność ───────── -->
+  <section id="panel-dostepnosc" class="panel ukryty">
+    <div id="dostepnoscWykrycie" class="podpowiedz ukryty"></div>
+    <div class="siatka">
+      <label>Data<input type="date" id="dostData"></label>
+      <label>Godzina (opc.)<input type="time" id="dostGodzina" step="900"></label>
+      <label>Liczba osób *<input type="number" id="dostOsoby" min="1" max="30" value="2"></label>
+      <label>Czas trwania (min)<input type="number" id="dostCzas" min="15" max="480" step="15" value="30"></label>
+    </div>
+    <label>Wzorzec odpowiedzi — wpisz nazwę (puste = surowa notatka)
+      <input type="text" id="dostWzorzec" autocomplete="off" spellcheck="false"
+             placeholder="np. Wzór - dostępność">
+    </label>
+    <p id="dostWzorzecStan" class="opis"></p>
+    <p id="dostOstrzezenie" class="podpowiedz ukryty"></p>
+    <p class="opis">Godziny trafią w miejsce wstawek <code>{{terminy}}</code> i <code>{{godziny}}</code>.
+      Dodatkowo wzorzec zna <code>{{data}}</code>, <code>{{dzien}}</code>, <code>{{osoby}}</code>,
+      <code>{{czas}}</code> i <code>{{otwarcie}}</code>. Wzorce dodajesz w zakładce <strong>Wzorce</strong>.</p>
+
+    <div class="rzad">
+      <button id="dostZWatku" class="wtorny" type="button">Wykryj z wątku</button>
+      <button id="dostSprawdz" class="glowny" type="button">Sprawdź</button>
+    </div>
+    <div id="dostWynik" class="wynik ukryty"></div>
+
+    <div id="dostNarzedzia" class="narzedzia ukryty" role="toolbar" aria-label="Formatowanie odpowiedzi">
+      <button type="button" data-format="bold" title="Pogrubienie (Ctrl+B)"><b>B</b></button>
+      <button type="button" data-format="italic" title="Kursywa (Ctrl+I)"><i>I</i></button>
+      <button type="button" data-format="underline" title="Podkreślenie (Ctrl+U)"><u>U</u></button>
+      <button type="button" data-format="insertUnorderedList" title="Lista punktowana">• ―</button>
+      <button type="button" data-link title="Wstaw link">🔗</button>
+      <button type="button" data-format="removeFormat" title="Wyczyść formatowanie">✕</button>
+    </div>
+    <div id="dostLink" class="linkform ukryty">
+      <label>Tekst linku<input type="text" data-pole="tekst" autocomplete="off" placeholder="np. Link do mapy"></label>
+      <label>Adres<input type="text" data-pole="url" autocomplete="off" spellcheck="false" placeholder="maps.google.com/… albo kontakt@csa.pl"></label>
+      <div class="rzad">
+        <button type="button" class="wtorny maly" data-akcja="anuluj">Anuluj</button>
+        <button type="button" class="wtorny maly ukryty" data-akcja="usun">Usuń link</button>
+        <button type="button" class="glowny maly" data-akcja="wstaw">Wstaw link</button>
+      </div>
+    </div>
+    <div id="dostEdycja" class="edytowalne ukryty" contenteditable="true" role="textbox" aria-multiline="true"
+         aria-label="Treść odpowiedzi o dostępności — możesz ją poprawić"></div>
+
+    <div id="dostZrodlo" class="zrodlo ukryty">
+      <span id="dostZrodloTekst"></span>
+      <button id="dostPrzywroc" class="link ukryty" type="button">Przywróć wygenerowany tekst</button>
+    </div>
+    <details id="dostSzczegoly" class="ukryty">
+      <summary>Szczegóły z kalendarza (dla Ciebie, nie dla klienta)</summary>
+      <div id="dostSurowy" class="surowy"></div>
+    </details>
+    <div class="rzad ukryty" id="dostAkcje">
+      <button id="dostKopiuj" class="wtorny" type="button">Kopiuj tekst</button>
+      <button id="dostWstaw" class="wtorny" type="button">Wstaw do odpowiedzi</button>
+    </div>
+  </section>
+
+  <!-- ───────── Tłumacz ───────── -->
+  <section id="panel-tlumacz" class="panel ukryty">
+    <p class="opis">Tłumaczy wszystkie wiadomości z wątku otwartego w Gmailu na polski.</p>
+    <button id="tlumaczStart" class="glowny szeroki" type="button">Tłumacz wątek</button>
+    <div id="tlumaczWynik" class="wynik ukryty"></div>
+  </section>
+
+  <!-- ───────── Wzorce maili ───────── -->
+  <section id="panel-wzorce" class="panel ukryty">
+    <div class="rzad">
+      <input type="search" id="wzorceSzukaj" placeholder="Szukaj: nazwa, tag, treść…" autocomplete="off">
+      <button id="wzorzecNowy" class="glowny waski" type="button">Nowy</button>
+    </div>
+
+    <div id="wzorzecEdytor" class="edytor ukryty">
+      <label>Nazwa<input type="text" id="wzorzecNazwa" placeholder="np. Potwierdzenie rezerwacji"></label>
+      <label>Tagi (po przecinku, opcjonalnie)<input type="text" id="wzorzecTagi" placeholder="rezerwacja, PL"></label>
+      <span class="etykieta">Treść</span>
+      <div id="wzorzecNarzedzia" class="narzedzia" role="toolbar" aria-label="Formatowanie treści">
+        <button type="button" data-format="bold" title="Pogrubienie (Ctrl+B)"><b>B</b></button>
+        <button type="button" data-format="italic" title="Kursywa (Ctrl+I)"><i>I</i></button>
+        <button type="button" data-format="underline" title="Podkreślenie (Ctrl+U)"><u>U</u></button>
+        <button type="button" data-format="insertUnorderedList" title="Lista punktowana">• ―</button>
+        <button type="button" data-link title="Wstaw link">🔗</button>
+        <button type="button" data-format="removeFormat" title="Wyczyść formatowanie">✕</button>
+      </div>
+      <div id="wzorzecLink" class="linkform ukryty">
+        <label>Tekst linku<input type="text" data-pole="tekst" autocomplete="off" placeholder="np. Link do mapy"></label>
+        <label>Adres<input type="text" data-pole="url" autocomplete="off" spellcheck="false" placeholder="maps.google.com/… albo kontakt@csa.pl"></label>
+        <div class="rzad">
+          <button type="button" class="wtorny maly" data-akcja="anuluj">Anuluj</button>
+          <button type="button" class="wtorny maly ukryty" data-akcja="usun">Usuń link</button>
+          <button type="button" class="glowny maly" data-akcja="wstaw">Wstaw link</button>
+        </div>
+      </div>
+      <div id="wzorzecTresc" class="edytowalne" contenteditable="true" role="textbox" aria-multiline="true"
+           data-placeholder="Dzień dobry {{imie}}, potwierdzam termin {{data}}…"></div>
+      <p class="opis">Formatowanie zachowuje się przy kopiowaniu i wstawianiu do Gmaila. Wstawka <code>{{nazwa}}</code> to miejsce do uzupełnienia — przy kopiowaniu dostaniesz przypomnienie, co zostało do wypełnienia.</p>
+      <div class="rzad">
+        <button id="wzorzecAnuluj" class="wtorny" type="button">Anuluj</button>
+        <button id="wzorzecZapisz" class="glowny" type="button">Zapisz wzorzec</button>
+      </div>
+    </div>
+
+    <div id="wzorceLista" class="lista"></div>
+  </section>
+
+  <!-- ───────── Semi-auto ───────── -->
+  <section id="panel-semiauto" class="panel ukryty">
+    <p class="opis">
+      Cyklicznie sprawdza wskazane wątki i przygotowuje <strong>wersje robocze</strong> odpowiedzi.
+      Nic nie jest wysyłane — każdy draft zostaje do ręcznej weryfikacji.
+    </p>
+    <label class="przelacznik">
+      <input type="checkbox" id="semiWlaczony">
+      <span>Tryb semi-auto włączony</span>
+    </label>
+    <div id="semiStatus" class="status"></div>
+    <div class="rzad">
+      <button id="semiTeraz" class="glowny" type="button">Uruchom cykl teraz</button>
+      <button id="semiReset" class="wtorny" type="button">Wyczyść deduplikację</button>
+    </div>
+    <details>
+      <summary>Log ostatnich cykli</summary>
+      <div id="semiLog" class="log"></div>
+    </details>
+  </section>
+
+  <div id="pasek" class="pasek ukryty"></div>
+  <script type="module" src="sidepanel.js"></script>
+  <script type="module" src="jev-panel.js"></script>
+</body>
+</html>

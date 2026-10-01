@@ -12,6 +12,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "extensions/**", // Extension has its own Node regression suite.
   ]),
 ]);
 

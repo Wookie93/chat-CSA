@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <base href="../">
+  <script src="test/preview-mock.js"></script>
+  <meta charset="utf-8">
+  <title>JevCSAssistant — ustawienia</title>
+  <link rel="stylesheet" href="sidepanel.css">
+  <style>
+    body { max-width: 760px; margin: 0 auto; padding: 24px 20px 80px; }
+    h2 { font-size: 14px; margin: 26px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--ramka); }
+    .pole { margin-bottom: 14px; }
+    .pole .uwaga { font-size: 11px; color: var(--przygaszony); margin-top: 4px; }
+    .sekret { display: flex; gap: 6px; align-items: flex-end; }
+    .sekret label { flex: 1; }
+    .sekret button { flex: 0 0 auto; padding: 8px 10px; }
+    textarea.prompt { min-height: 180px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .pasek-zapisu { position: fixed; left: 0; right: 0; bottom: 0; background: var(--tlo); border-top: 1px solid var(--ramka); padding: 10px 20px; display: flex; gap: 10px; align-items: center; justify-content: flex-end; }
+    .pasek-zapisu span { margin-right: auto; font-size: 12px; color: var(--przygaszony); }
+    .pasek-zapisu button { flex: 0 0 auto; min-width: 130px; }
+    .ostrzezenie { border-left: 3px solid var(--akcent); background: var(--pole); padding: 8px 10px; font-size: 12px; border-radius: 4px; }
+    .dwie { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  </style>
+</head>
+<body>
+  <p>TEST UI — atrapy Chrome i API</p>
+  <h1>JevCSAssistant — ustawienia</h1>
+
+  <h2>Konfiguracja centralna</h2>
+  <p>Wspólny cennik, reguły dostępności i wzorce. Pobieranie uruchamiasz ręcznie. Po błędzie pozostaje ostatnia pobrana wersja.</p>
+  <label>Adres konfiguracji<input id="centralUrl" type="url" placeholder="https://chat-csa.vercel.app/api/configuration"></label>
+  <label>Token odczytu<input id="centralToken" type="password" autocomplete="off"></label>
+  <p class="uwaga">To token aplikacji chat-CSA, bez logowania OAuth do Google. Token nie jest zapisywany we wtyczce.</p>
+  <button id="centralDownload" type="button">Pobierz i zastosuj konfigurację</button>
+  <button id="centralDisconnect" type="button" class="wtorny">Wróć do lokalnej konfiguracji</button>
+  <button id="centralExport" type="button" class="wtorny">Eksportuj konfigurację do publikacji</button>
+  <p id="centralStatus" role="status"></p>
+  <h2>Dostęp</h2>
+
+  <div class="pole sekret">
+    <label>Klucz API OpenRouter
+      <input type="password" id="apiKey" autocomplete="off" placeholder="sk-or-v1-…">
+    </label>
+    <button type="button" class="wtorny" data-pokaz="apiKey">Pokaż</button>
+  </div>
+  <p class="uwaga">Płatność za tokeny idzie z Twojego konta OpenRouter (model BYOK). Klucz trzymany jest wyłącznie w <code>chrome.storage.local</code> tej przeglądarki.</p>
+
+  <div class="pole sekret">
+    <label>Prywatny link iCal do Kalendarza Google
+      <input type="password" id="icalUrl" autocomplete="off" placeholder="https://calendar.google.com/calendar/ical/…/basic.ics">
+    </label>
+    <button type="button" class="wtorny" data-pokaz="icalUrl">Pokaż</button>
+  </div>
+  <div class="ostrzezenie">
+    <strong>To jest sekret.</strong> Każdy, kto pozna ten link, ma pełny odczyt Twojego kalendarza — bez logowania i bez ograniczeń czasowych.
+    Nie wysyłaj go mailem ani czatem, nie wklejaj do dokumentów. Link generujesz w Kalendarzu Google:
+    <em>Ustawienia → [kalendarz] → Integracja kalendarza → „Tajny adres w formacie iCal"</em>.
+    Jeśli wyciekł, użyj tam przycisku resetowania — stary link natychmiast przestanie działać.
+    Rozszerzenie zapisuje go tylko w <code>chrome.storage.local</code> i używa wyłącznie do żądania GET po dane kalendarza.
+  </div>
+
+  <div class="pole" style="margin-top:14px">
+    <button type="button" class="wtorny" id="testIcal">Testuj link iCal (diagnostyka)</button>
+    <div id="wynikIcal" class="wynik ukryty" style="margin-top:8px"></div>
+  </div>
+
+  <h2>Jev — analiza i zamówienia</h2>
+  <p class="opis">Do OpenRouter trafia treść analizowanego wątku i katalog produktów. Klucz oraz link iCal nie są częścią kontekstu. Nazwy osób w tekście mogą pozostać widoczne dostawcy.</p>
+  <label>Model Jev<input id="jevModel" type="text"></label>
+  <button id="jevTest" class="wtorny" type="button">Testuj zapisany klucz i model Jev</button><p id="jevTestResult" role="status"></p>
+  <label>Minimalna pewność (0,5–1)<input id="jevThreshold" type="number" min="0.5" max="1" step="0.01"></label>
+  <label class="przelacznik"><input id="jevShadow" type="checkbox">Tryb porównawczy semi-auto: analiza bez zapisywania draftów</label>
+  <h2>Reguły dostępności</h2>
+  <label>Liczba w tytule wpisu kalendarza oznacza
+    <select id="jevStaffing"><option value="unconfirmed">Wybierz regułę…</option><option value="free">Wolnych instruktorów — nie odejmuj rezerwacji</option><option value="total">Całą obsadę — odejmuj rezerwacje</option></select>
+  </label>
+  <label>Po zaproponowaniu godzinnej wizyty o 12:30
+    <select id="jevProposals"><option value="unconfirmed">Wybierz regułę…</option><option value="nonOverlapping">Następna propozycja od 14:00 (plik dostępności)</option><option value="everyHour">Sprawdź też 13:00 jako alternatywę (prototyp)</option></select>
+  </label>
+  <label class="przelacznik"><input id="jevLateFinish" type="checkbox">W modelu wolnej obsady pozwalaj zakończyć po zamknięciu z tabeli, jeśli cały czas pokrywa kalendarz</label>
+  <h2>Cennik i odpowiedzi</h2>
+  <label>Katalog produktów (JSON)<textarea id="jevCatalog" rows="16" spellcheck="false"></textarea></label>
+  <p class="opis">Ceny w groszach za bazową liczbę strzałów. serviceFeeGrosz określa opłatę per osoba bez gotowego pakietu. approved=true dopiero po sprawdzeniu cennika. Każda pozycja: id, name, unit (shot/package/extra), priceGrosz (za baseQuantity), baseQuantity, quantities, opcjonalnie aliases, durationMin i exclusiveWith. Plik catalog.example.json zawiera dane testowe.</p>
+  <label>Wzorzec PL<textarea id="jevTemplatePl" rows="5"></textarea></label>
+  <label>Wzorzec EN<textarea id="jevTemplateEn" rows="5"></textarea></label>
+  <p class="opis">Zmienne: {{wycena}}, {{dostepnosc}}, {{pytania}}. Każdy potrzebny blok musi znaleźć się we wzorcu.</p>
+  <button id="jevExport" type="button" class="wtorny">Eksportuj ustawienia bez sekretów</button>
+  <label>Import ustawień (JSON)<input id="jevImport" type="file" accept="application/json,.json"></label>
+  <details><summary>Archiwalne ustawienia wyceny — nieużywane przez Jev</summary>  <h2>Policz pakiet</h2>
+  <div class="pole"><label>Model<input type="text" id="model-pakiet"></label></div>
+  <div class="pole">
+    <label>Prompt systemowy<textarea class="prompt" id="prompt-pakiet"></textarea></label>
+    <div class="uwaga">Wklej tu <strong>pełny cennik</strong> w miejsce placeholdera — bez niego model będzie zgadywać ceny.</div>
+    <button type="button" class="wtorny" data-reset="pakiet" style="margin-top:6px">Przywróć domyślny prompt</button>
+  </div>
+
+</details>
+
+  <h2>Tłumacz wątek</h2>
+  <div class="pole"><label>Model<input type="text" id="model-tlumacz"></label></div>
+  <div class="pole">
+    <label>Prompt systemowy<textarea class="prompt" id="prompt-tlumacz"></textarea></label>
+    <button type="button" class="wtorny" data-reset="tlumacz" style="margin-top:6px">Przywróć domyślny prompt</button>
+  </div>
+  <div class="pole">
+    <label class="przelacznik"><input type="checkbox" id="pomijajPolskie"> <span>Pomijaj wiadomości już napisane po polsku (nie wysyłaj ich do modelu)</span></label>
+    <div class="uwaga">Wyłączone = wszystko idzie przez model, spójniejsze formatowanie, wyższy koszt.</div>
+  </div>
+
+  <h2>Tryb semi-auto</h2>
+  <div class="ostrzezenie">Tryb tworzy wyłącznie <strong>wersje robocze</strong> — nic nie jest wysyłane automatycznie. Każdy draft wymaga ręcznej weryfikacji i wysyłki.</div>
+  <div class="pole" style="margin-top:12px">
+    <label class="przelacznik"><input type="checkbox" id="semiWlaczony"> <span>Włączony</span></label>
+  </div>
+  <div class="dwie">
+    <div class="pole"><label>Interwał (min, 5–10)<input type="number" id="semiInterwal" min="5" max="10" step="1"></label></div>
+    <div class="pole"><label>Maks. wątków na cykl<input type="number" id="semiMax" min="1" max="10" step="1"></label></div>
+  </div>
+  <div class="pole"><label>Model opcjonalnej redakcji powitania i zakończenia<input type="text" id="model-semiauto"></label></div>
+  <details><summary>Archiwalny prompt semi-auto — nieużywany przez Jev</summary>
+  <div class="pole">
+    <label>Dawny prompt systemowy<textarea class="prompt" id="prompt-semiauto"></textarea></label>
+    <button type="button" class="wtorny" data-reset="semiauto" style="margin-top:6px">Przywróć domyślny prompt</button>
+  </div>
+  </details>
+  <div class="pole"><label>Etykieta Gmaila (opcjonalna)<input type="text" id="semiEtykieta" placeholder="np. Klienci"></label></div>
+  <div class="pole">
+    <label>Zapytanie Gmaila — definicja „nowego wątku"<input type="text" id="semiZapytanie" placeholder="is:unread in:inbox"></label>
+    <div class="uwaga">Składnia wyszukiwarki Gmaila. Przykłady: <code>is:unread in:inbox</code>, <code>is:unread -has:draft newer_than:2d</code>.</div>
+  </div>
+
+  <h2>Zaawansowane</h2>
+  <div class="pole"><label>Cache kalendarza (sekundy)<input type="number" id="icalCache" min="0" max="86400" step="300"></label>
+    <div class="uwaga">Jak długo trzymać dane z iCal. Pełne pobranie to ok. 47 MB i ok. 2 minuty, dlatego
+      odświeżanie chodzi w tle (co 75% tego czasu) — sprawdzanie dostępności czyta gotowy cache.</div>
+  </div>
+
+  <div class="pole"><label><input type="checkbox" id="naZywoWlaczona"> Weryfikuj pytany dzień na żywo</label>
+    <div class="uwaga">Sam iCal bywa nieświeży nawet o kilkadziesiąt minut. Przy włączonej opcji dzień,
+      o który pytasz, jest dodatkowo odczytywany wprost z Kalendarza — to sekundy, nie minuty, bo dotyczy
+      jednego dnia. Wymaga zalogowanej sesji Kalendarza; gdy odczyt zawiedzie, dostępność liczy się z iCal.</div>
+  </div>
+
+  <div class="pole"><label>Cache odczytu na żywo (sekundy)<input type="number" id="naZywoCache" min="0" max="3600" step="30"></label>
+    <div class="uwaga">Kilka maili o ten sam dzień w krótkim czasie odpyta Kalendarz tylko raz.</div>
+  </div>
+
+  <div class="pasek-zapisu">
+    <span id="statusZapisu"></span>
+    <button type="button" class="glowny" id="zapisz">Zapisz ustawienia</button>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>
