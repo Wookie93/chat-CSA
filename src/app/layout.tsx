@@ -1,35 +1,28 @@
+import { requireAppAccess } from "@/lib/access";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import "@fontsource-variable/geist";
+import "@fontsource-variable/geist-mono";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Navbar } from "@/components/Navbar";
 import { Sidebar } from "@/components/Sidebar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: "Chat App",
   description: "Secure dynamic chat application",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await requireAppAccess();
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className="antialiased"
       >
         <ErrorBoundary>
           <div className="h-screen flex flex-col max-w-[1920px] mx-auto w-full">

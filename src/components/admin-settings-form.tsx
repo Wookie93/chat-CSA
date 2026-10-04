@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { Loader2, Save } from 'lucide-react';
 
 interface AdminSettingsFormProps {
+    hasApiKey: boolean;
     initialSettings: {
         openrouter_api_key: string;
         openrouter_model: string;
@@ -30,7 +31,7 @@ interface AdminSettingsFormProps {
     };
 }
 
-export function AdminSettingsForm({ initialSettings }: AdminSettingsFormProps) {
+export function AdminSettingsForm({ initialSettings, hasApiKey }: AdminSettingsFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const form = useForm<UpdateSettingsInput>({
@@ -49,6 +50,7 @@ export function AdminSettingsForm({ initialSettings }: AdminSettingsFormProps) {
             const result = await updateSettings(formData);
 
             if (result.success) {
+                form.reset({ ...data, openrouter_api_key: '' });
                 toast.success('Settings updated successfully!');
             } else {
                 if (result.errors) {
@@ -59,7 +61,7 @@ export function AdminSettingsForm({ initialSettings }: AdminSettingsFormProps) {
                     toast.error(result.error || 'Failed to update settings');
                 }
             }
-        } catch (error) {
+        } catch {
             toast.error('An unexpected error occurred');
         } finally {
             setIsSubmitting(false);
@@ -88,12 +90,13 @@ export function AdminSettingsForm({ initialSettings }: AdminSettingsFormProps) {
                                         <Input
                                             id="openrouter-api-key-input"
                                             type="password"
-                                            placeholder="sk-or-v1-..."
+                                            placeholder={hasApiKey ? "Configured — leave blank to keep" : "sk-or-v1-..."}
+                                            autoComplete="new-password"
                                             {...field}
                                         />
                                     </FormControl>
                                     <FormDescription>
-                                        Your OpenRouter API key for accessing AI models.
+                                        Enter a new key to replace it. Leave blank to keep the configured key.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>

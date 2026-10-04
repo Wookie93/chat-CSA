@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { useTranslation } from '@/hooks/use-translation';
 
 const LANGUAGES = [
     { code: 'AUTO', label: 'Detect language' },
@@ -285,61 +286,15 @@ function TranslatedText({ text, canShowSynonyms, onTextChange }: TranslatedTextP
 
 export default function TranslatorPage() {
     const [sourceText, setSourceText] = useState('');
-    const [translatedText, setTranslatedText] = useState('');
     const [sourceLang, setSourceLang] = useState('AUTO');
     const [targetLang, setTargetLang] = useState('PL');
-    const [detectedLang, setDetectedLang] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [copied, setCopied] = useState(false);
-
-    // Resolve the effective target language for synonym support check
-    const effectiveTargetLang = targetLang;
-    const canShowSynonyms = SYNONYM_LANGUAGES.includes(effectiveTargetLang);
-
-    // Auto-translate: fire 1s after the user stops typing
-    useEffect(() => {
-        if (!sourceText.trim()) return;
-        const timer = setTimeout(() => handleTranslate(), 1000);
-        return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [sourceText, sourceLang, targetLang]);
-
-    const handleTranslate = useCallback(async () => {
-        if (!sourceText.trim()) return;
-
-        setIsLoading(true);
-        setTranslatedText('');
-        setDetectedLang(null);
-
-        try {
-            const res = await fetch('/api/translate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    text: sourceText,
-                    sourceLang: sourceLang === 'AUTO' ? undefined : sourceLang,
-                    targetLang,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                toast.error(data.error ?? 'Translation failed');
-                return;
-            }
-
-            setTranslatedText(data.translatedText);
-            if (data.detectedSourceLang) {
-                const detected = LANGUAGES.find((l) => l.code === data.detectedSourceLang);
-                setDetectedLang(detected?.label ?? data.detectedSourceLang);
-            }
-        } catch {
-            toast.error('Network error — could not reach the server');
-        } finally {
-            setIsLoading(false);
-        }
-    }, [sourceText, sourceLang, targetLang]);
+    const {
+        translatedText, setTranslatedText, detectedLang: detectedCode,
+        setDetectedLang, isLoading, handleTranslate,
+    } = useTranslation(sourceText, sourceLang, targetLang);
+    const detectedLang = LANGUAGES.find((language) => language.code === detectedCode)?.label ?? detectedCode;
+    const canShowSynonyms = SYNONYM_LANGUAGES.includes(targetLang);
 
     const handleSwap = () => {
         if (sourceLang === 'AUTO') return;
@@ -354,9 +309,13 @@ export default function TranslatorPage() {
 
     const handleCopy = async () => {
         if (!translatedText) return;
-        await navigator.clipboard.writeText(translatedText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        try {
+            await navigator.clipboard.writeText(translatedText);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            toast.error('Could not copy translation');
+        }
     };
 
     const charCount = sourceText.length;

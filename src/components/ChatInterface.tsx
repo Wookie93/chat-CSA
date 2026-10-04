@@ -1,39 +1,63 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useCallback } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { useChat, useAutoScroll } from '@/app/chat/hooks';
-import { ChatMessage, ChatMessageLoading } from '@/app/chat/ChatMessage';
-import { ChatInput } from '@/app/chat/ChatInput';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChatContainer, ChatForm, ChatMessages } from '@/components/ui/chat';
+import { type Message } from '@/components/ui/chat-message';
+import { CopyButton } from '@/components/ui/copy-button';
+import { MessageInput } from '@/components/ui/message-input';
+import { MessageList } from '@/components/ui/message-list';
+import { PromptSuggestions } from '@/components/ui/prompt-suggestions';
+import { useChat } from '@/app/chat/hooks';
+
+const SUGGESTIONS = [
+    'Jakie pakiety są dostępne i czym się różnią?',
+    'Który pakiet polecasz na początek?',
+    'Jak wygląda kwestia transportu?',
+];
 
 export function ChatInterface() {
     const {
         messages,
         input,
         setInput,
-        isLoading,
+        handleInputChange,
         handleSubmit,
+        append,
+        stop,
+        isGenerating,
         setMessages,
     } = useChat({
-        onError: () => toast.error('Failed to send message. Please try again.'),
+        onError: (error) => toast.error(error.message),
     });
 
-    const scrollAreaRef = useAutoScroll([messages]);
+    const lastMessage = messages.at(-1);
+    const isEmpty = messages.length === 0;
+    const isTyping = isGenerating && lastMessage?.role === 'user';
 
-    const handleNewChat = () => {
+    const handleNewChat = async () => {
+        await stop();
         setMessages([]);
         setInput('');
     };
 
+    const messageOptions = useCallback(
+        (message: Message) => ({
+            actions:
+                message.role === 'assistant' ? (
+                    <CopyButton content={message.content} copyMessage="Skopiowano odpowiedź!" />
+                ) : undefined,
+        }),
+        []
+    );
+
     return (
-        <Card className="h-[80vh] flex flex-col w-full max-w-5xl mx-auto shadow-lg">
-            <CardHeader className="flex flex-row items-start justify-between py-3">
-                <CardTitle className="text-lg font-medium">Chat</CardTitle>
+        <div className="flex h-full w-full max-w-5xl mx-auto flex-col min-h-0">
+            <div className="flex items-center justify-between pb-3">
+                <h1 className="text-lg font-medium">Chat</h1>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
@@ -49,34 +73,40 @@ export function ChatInterface() {
                     </TooltipTrigger>
                     <TooltipContent>Start a new conversation</TooltipContent>
                 </Tooltip>
-            </CardHeader>
-            <Separator />
-            <CardContent className="flex-1 p-4 overflow-hidden">
-                <ScrollArea className="h-full pr-4" ref={scrollAreaRef}>
-                    <div className="space-y-4 pb-4">
-                        {messages.map((message) => (
-                            <ChatMessage key={message.id} message={message} />
-                        ))}
-                        {isLoading && <ChatMessageLoading />}
-                        {messages.length === 0 && !isLoading && (
-                            <div className="flex flex-col items-start justify-center h-full text-muted-foreground opacity-50 pt-20">
-                                <p className="text-lg font-medium">Start a conversation</p>
-                                <p className="text-sm">Type a message below to begin</p>
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-            </CardContent>
-
-            <Separator />
-            <div className="p-4 bg-muted/20">
-                <ChatInput
-                    value={input}
-                    onChange={setInput}
-                    onSubmit={handleSubmit}
-                    disabled={isLoading}
-                />
             </div>
-        </Card>
+
+            <ChatContainer className="flex-1 min-h-0 grid-rows-[minmax(0,1fr)_auto]">
+                {isEmpty ? (
+                    <div className="flex items-center justify-center px-2">
+                        <PromptSuggestions
+                            label="Od czego zaczniemy? ✨"
+                            append={append}
+                            suggestions={SUGGESTIONS}
+                        />
+                    </div>
+                ) : (
+                    <ChatMessages messages={messages}>
+                        <MessageList
+                            messages={messages}
+                            isTyping={isTyping}
+                            messageOptions={messageOptions}
+                        />
+                    </ChatMessages>
+                )}
+
+                <ChatForm className="mt-auto pt-2" isPending={isGenerating} handleSubmit={handleSubmit}>
+                    {() => (
+                        <MessageInput
+                            id="chat-message-input"
+                            value={input}
+                            onChange={handleInputChange}
+                            placeholder="Napisz wiadomość... (Shift+Enter – nowa linia)"
+                            stop={stop}
+                            isGenerating={isGenerating}
+                        />
+                    )}
+                </ChatForm>
+            </ChatContainer>
+        </div>
     );
 }

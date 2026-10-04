@@ -1,199 +1,83 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, type SetStateAction } from 'react';
+import { readChatStream } from '@/lib/chat-stream';
 import type { Message } from './types';
 
-interface UseChatOptions {
-    onError?: (error: Error) => void;
-}
+interface UseChatOptions { onError?: (error: Error) => void }
 
 export function useChat({ onError }: UseChatOptions = {}) {
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [messages, setMessageState] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const abortControllerRef = useRef<AbortController | null>(null);
+    const messagesRef = useRef<Message[]>([]);
+    const activeRef = useRef<{ controller: AbortController; done: Promise<void> } | null>(null);
 
-    const sendMessage = useCallback(async (content: string) => {
-        if (!content.trim() || isLoading) return;
-
-        const userMessage: Message = {
-            id: Date.now().toString(),
-            role: 'user',
-            content: content.trim(),
-        };
-
-        setMessages(prev => [...prev, userMessage]);
-        setInput('');
-        setIsLoading(true);
-
-        // Create abort controller for this request
-        abortControllerRef.current = new AbortController();
-
-        try {
-            const response = await fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    messages: [...messages, userMessage].map(msg => ({
-                        role: msg.role,
-                        content: msg.content,
-                    })),
-                }),
-                signal: abortControllerRef.current.signal,
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to send message: ${errorText}`);
-            }
-
-            const reader = response.body?.getReader();
-            if (!reader) throw new Error('No response body');
-
-            const assistantMessage: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: '',
-            };
-
-            setMessages(prev => [...prev, assistantMessage]);
-
-            const decoder = new TextDecoder();
-            let buffer = '';
-            let totalContent = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-
-                for (const line of lines.slice(0, -1)) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.content) {
-                                totalContent += parsed.content;
-                                setMessages(prev =>
-                                    prev.map(msg =>
-                                        msg.id === assistantMessage.id
-                                            ? { ...msg, content: totalContent }
-                                            : msg
-                                    )
-                                );
-                            }
-                        } catch {
-                            // Try treating as raw text
-                            if (data && data !== '[DONE]') {
-                                totalContent += data;
-                                setMessages(prev =>
-                                    prev.map(msg =>
-                                        msg.id === assistantMessage.id
-                                            ? { ...msg, content: totalContent }
-                                            : msg
-                                    )
-                                );
-                            }
-                        }
-                    } else if (line.trim()) {
-                        // Handle raw text lines
-                        totalContent += line + '\n';
-                        setMessages(prev =>
-                            prev.map(msg =>
-                                msg.id === assistantMessage.id
-                                    ? { ...msg, content: totalContent }
-                                    : msg
-                            )
-                        );
-                    }
-                }
-
-                buffer = lines[lines.length - 1];
-            }
-
-            // Process any remaining buffer content
-            if (buffer) {
-                // Try to parse as data if it looks like one, otherwise treat as text
-                if (buffer.startsWith('data: ')) {
-                    const data = buffer.slice(6);
-                    if (data !== '[DONE]') {
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.content) {
-                                totalContent += parsed.content;
-                            }
-                        } catch {
-                            // Ignore malformed/partial JSON at the very end
-                        }
-                    }
-                } else {
-                    totalContent += buffer;
-                }
-
-                // Final update
-                setMessages(prev =>
-                    prev.map(msg =>
-                        msg.id === assistantMessage.id
-                            ? { ...msg, content: totalContent }
-                            : msg
-                    )
-                );
-            }
-        } catch (error) {
-            if (error instanceof Error && error.name === 'AbortError') {
-                return; // Request was cancelled
-            }
-            onError?.(error instanceof Error ? error : new Error('Unknown error'));
-            // Remove failed assistant message
-            setMessages(prev => prev.filter(msg => msg.role === 'user' || msg.content.length > 0));
-        } finally {
-            setIsLoading(false);
-            abortControllerRef.current = null;
-        }
-    }, [messages, isLoading, onError]);
-
-    const handleSubmit = useCallback((e?: React.FormEvent) => {
-        e?.preventDefault();
-        sendMessage(input);
-    }, [input, sendMessage]);
-
-    const cancelRequest = useCallback(() => {
-        abortControllerRef.current?.abort();
+    const setMessages = useCallback((update: SetStateAction<Message[]>) => {
+        const next = typeof update === 'function' ? update(messagesRef.current) : update;
+        messagesRef.current = next;
+        setMessageState(next);
     }, []);
 
-    return {
-        messages,
-        input,
-        setInput,
-        isLoading,
-        handleSubmit,
-        cancelRequest,
-        setMessages,
-    };
-}
+    useEffect(() => () => { activeRef.current?.controller.abort(); }, []);
 
-export function useAutoScroll(deps: unknown[]) {
-    const scrollAreaRef = useRef<HTMLDivElement>(null);
+    const sendMessage = useCallback((content: string) => {
+        if (!content.trim() || activeRef.current) return;
+        const userMessage: Message = {
+            id: crypto.randomUUID(), role: 'user', content: content.trim(), createdAt: new Date(),
+        };
+        const history = [...messagesRef.current, userMessage];
+        setMessages(history);
+        setInput('');
+        setIsLoading(true);
+        const controller = new AbortController();
+        const assistantId = crypto.randomUUID();
+        const active = { controller, done: Promise.resolve() };
+        activeRef.current = active;
 
-    useEffect(() => {
-        const scrollToBottom = () => {
-            if (scrollAreaRef.current) {
-                const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-                if (scrollElement) {
-                    scrollElement.scrollTop = scrollElement.scrollHeight;
-                } else {
-                    scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+        active.done = (async () => {
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ messages: history.filter(msg => msg.content.trim()).map(({ role, content }) => ({ role, content })) }),
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    const body = await response.json().catch(() => null);
+                    throw new Error(body?.error ?? 'Nie udało się wysłać wiadomości.');
+                }
+                if (controller.signal.aborted) return;
+                if (!response.body) throw new Error('Brak odpowiedzi serwera.');
+                setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '', createdAt: new Date() }]);
+                await readChatStream(response.body, text => {
+                    if (controller.signal.aborted) return;
+                    setMessages(prev => prev.map(msg => msg.id === assistantId ? { ...msg, content: msg.content + text } : msg));
+                });
+            } catch (error) {
+                if (!controller.signal.aborted) onError?.(error instanceof Error ? error : new Error('Unknown error'));
+            } finally {
+                if (activeRef.current === active) {
+                    setMessages(prev => prev.filter(msg => msg.id !== assistantId || msg.content.length > 0));
+                    setIsLoading(false);
+                    activeRef.current = null;
                 }
             }
-        };
+        })();
+    }, [onError, setMessages]);
 
-        const timeoutId = setTimeout(scrollToBottom, 50);
-        return () => clearTimeout(timeoutId);
-    }, deps);
+    const handleSubmit = useCallback((event?: { preventDefault?: () => void }) => {
+        event?.preventDefault?.();
+        sendMessage(input);
+    }, [input, sendMessage]);
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => setInput(e.target.value), []);
+    const append = useCallback((message: { role: 'user'; content: string }) => sendMessage(message.content), [sendMessage]);
+    const stop = useCallback(async () => {
+        const active = activeRef.current;
+        if (!active) return;
+        active.controller.abort();
+        await active.done;
+    }, []);
 
-    return scrollAreaRef;
+    return { messages, input, setInput, handleInputChange, isLoading, isGenerating: isLoading,
+        handleSubmit, append, stop, cancelRequest: stop, setMessages };
 }

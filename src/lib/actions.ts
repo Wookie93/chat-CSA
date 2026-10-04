@@ -4,8 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { updateSettingsSchema } from './schemas';
 import { updateAppSettings } from './supabase';
 import { z } from 'zod';
+import { requireAppAccess } from './access';
 
 export async function updateSettings(formData: FormData) {
+  await requireAppAccess();
   try {
     // Extract form data
     const data = {

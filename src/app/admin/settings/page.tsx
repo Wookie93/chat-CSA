@@ -1,8 +1,10 @@
 import { getAppSettings } from '@/lib/supabase';
 import { AdminSettingsForm } from '@/components/admin-settings-form';
+import { requireAppAccess } from '@/lib/access';
 import { Separator } from '@/components/ui/separator';
 
 export default async function AdminSettingsPage() {
+  await requireAppAccess();
   // Fetch initial settings server-side
   const settings = await getAppSettings();
 
@@ -15,7 +17,10 @@ export default async function AdminSettingsPage() {
         </div>
       </div>
       <Separator className="mb-6" />
-      <AdminSettingsForm initialSettings={settings} />
+      <AdminSettingsForm
+        initialSettings={{ openrouter_api_key: '', openrouter_model: settings.openrouter_model, system_prompt: settings.system_prompt }}
+        hasApiKey={Boolean(settings.openrouter_api_key)}
+      />
     </div>
   );
 }

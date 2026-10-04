@@ -2,6 +2,7 @@ export type Database = {
   public: {
     Tables: {
       app_settings: {
+        Relationships: [];
         Row: {
           id: string;
           openrouter_api_key: string;
