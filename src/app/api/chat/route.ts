@@ -3,7 +3,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { getAppSettings } from '@/lib/supabase';
 import { chatRequestSchema } from '@/lib/schemas';
 import { checkAppAccess, checkMutationOrigin } from '@/lib/access';
-import { checkRateLimit, readJsonBody, RequestError } from '@/lib/request-limits';
+import { readJsonBody, RequestError } from '@/lib/request-limits';
 import { createChatStreamResponse } from '@/lib/chat-stream';
 import { calculateWithJev } from '@/lib/jev-calculator';
 
@@ -13,8 +13,6 @@ export async function POST(req: Request) {
   try {
     const parsed = chatRequestSchema.safeParse(await readJsonBody(req, 300000));
     if (!parsed.success) return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
-    const limited = await checkRateLimit('chat');
-    if (limited) return limited;
     const settings = await getAppSettings();
     if (!settings.openrouter_api_key) {
       return Response.json({ error: 'Configure the API key in admin settings.' }, { status: 400 });

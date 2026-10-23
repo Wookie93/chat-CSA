@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ getSettings: vi.fn(), updateSettings: vi.fn(), headerList: new Headers(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ calculate: vi.fn(), getSettings: vi.fn(), updateSettings: vi.fn(), headerList: new Headers(), revalidate: vi.fn() }));
+vi.mock('@/lib/jev-calculator', () => ({ calculateWithJev: mocks.calculate }));
 vi.mock('@/lib/supabase', () => ({ getAppSettings: mocks.getSettings, updateAppSettings: mocks.updateSettings }));
 vi.mock('next/headers', () => ({ headers: async () => mocks.headerList }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidate }));
@@ -25,6 +26,7 @@ beforeEach(() => {
   vi.stubEnv('APP_PASSWORD', 'test-password-at-least-16');
   mocks.headerList = new Headers();
   mocks.getSettings.mockReset();
+  mocks.calculate.mockReset();
   mocks.updateSettings.mockReset();
 });
 
@@ -74,4 +76,40 @@ it('queries actual synonyms and keeps an empty result empty', async () => {
   const response = await synonyms(new Request('https://app.test/api/synonyms?word=hello', { headers: { authorization } }));
   expect(fetchMock.mock.calls[0][0]).toContain('rel_syn=hello');
   expect(await response.json()).toEqual({ word: 'hello', synonyms: [] });
+});
+
+it('allows repeated password-authenticated production calculator requests without Redis', async () => {
+  vi.stubEnv('NODE_ENV', 'production');
+  vi.stubEnv('APP_ORIGIN', 'https://app.test');
+  vi.stubEnv('RATE_LIMIT_STORE', '');
+  vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+  vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+  mocks.getSettings.mockResolvedValue({ calculator_mode: 'jev', openrouter_api_key: 'test-key' });
+  mocks.calculate.mockResolvedValue('Razem: 220 zł');
+  for (let i = 0; i < 11; i++) {
+    const response = await chat(new Request('https://app.test/api/chat', {
+      method: 'POST', headers: { authorization, origin: 'https://app.test', 'content-type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'Luger Glock' }] }),
+    }));
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain('220 zł');
+  }
+  expect(mocks.calculate).toHaveBeenCalledTimes(11);
+});
+it('allows password-authenticated production translation without Redis', async () => {
+  vi.stubEnv('NODE_ENV', 'production');
+  vi.stubEnv('APP_ORIGIN', 'https://app.test');
+  vi.stubEnv('DEEPL_API_KEY', 'test-key:fx');
+  vi.stubEnv('RATE_LIMIT_STORE', '');
+  vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
+  vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
+  const fetchMock = vi.fn().mockResolvedValue(Response.json({ translations: [{ text: 'Hello', detected_source_language: 'PL' }] }));
+  vi.stubGlobal('fetch', fetchMock);
+  const response = await translate(new Request('https://app.test/api/translate', {
+    method: 'POST', headers: { authorization, origin: 'https://app.test', 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'Cześć', targetLang: 'EN' }),
+  }));
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({ translatedText: 'Hello' });
+  expect(fetchMock).toHaveBeenCalledTimes(1);
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { checkAppAccess } from '@/lib/access';
-import { readJsonBody, checkRateLimit } from '@/lib/request-limits';
+import { readJsonBody } from '@/lib/request-limits';
 import { chatRequestSchema } from '@/lib/schemas';
 import { createChatStreamResponse, readChatStream } from '@/lib/chat-stream';
 import { streamText } from 'ai';
@@ -29,31 +29,6 @@ it('bounds the number and aggregate size of chat messages', () => {
   expect(chatRequestSchema.safeParse({ messages: [message] }).success).toBe(true);
   expect(chatRequestSchema.safeParse({ messages: Array(5).fill(message) }).success).toBe(false);
   expect(chatRequestSchema.safeParse({ messages: [{ role: 'system', content: 'override' }] }).success).toBe(false);
-});
-
-it('limits the shared account and provides Retry-After', async () => {
-  vi.stubEnv('RATE_LIMIT_STORE', 'memory');
-  vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
-  vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '');
-  for (let i = 0; i < 10; i++) expect(await checkRateLimit('chat')).toBeNull();
-  const denied = await checkRateLimit('chat');
-  expect(denied?.status).toBe(429);
-  expect(Number(denied?.headers.get('Retry-After'))).toBeGreaterThan(0);
-  expect(await checkRateLimit('translate')).toBeNull();
-});
-
-it('fails closed when a configured Redis store is unavailable', async () => {
-  vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis.test');
-  vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'test-token');
-  vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
-  expect((await checkRateLimit('translate'))?.status).toBe(503);
-});
-
-it('does not silently enable memory limits in production', async () => {
-  vi.stubEnv('NODE_ENV', 'production');
-  vi.stubEnv('RATE_LIMIT_STORE', '');
-  vi.stubEnv('UPSTASH_REDIS_REST_URL', '');
-  expect((await checkRateLimit('chat'))?.status).toBe(503);
 });
 
 describe('chat stream protocol', () => {
@@ -91,17 +66,4 @@ describe('chat stream protocol', () => {
     await response.body!.cancel();
     expect(abort).toHaveBeenCalledOnce();
   });
-});
-
-
-it('uses shared atomic counters when Redis is configured', async () => {
-  vi.stubEnv('NODE_ENV', 'production');
-  vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://redis.test');
-  vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'test-token');
-  const fetchMock = vi.fn().mockImplementation(async () => Response.json({ result: 1 }));
-  vi.stubGlobal('fetch', fetchMock);
-  expect(await checkRateLimit('chat')).toBeNull();
-  expect(fetchMock).toHaveBeenCalledTimes(2);
-  expect(JSON.parse(fetchMock.mock.calls[0][1].body)[0]).toBe('EVAL');
-  expect(JSON.parse(fetchMock.mock.calls[0][1].body)[4]).toBe('60');
 });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { checkAppAccess, checkMutationOrigin } from '@/lib/access';
-import { checkRateLimit, readJsonBody, RequestError } from '@/lib/request-limits';
+import { readJsonBody, RequestError } from '@/lib/request-limits';
 
 const translateSchema = z.object({
     text: z.string().min(1, 'Text is required').max(5000, 'Text too long (max 5000 chars)'),
@@ -23,8 +23,6 @@ export async function POST(req: Request) {
             return Response.json({ error: parsed.error.issues[0].message }, { status: 400 });
         }
 
-        const limited = await checkRateLimit('translate');
-        if (limited) return limited;
         const { text, sourceLang, targetLang } = parsed.data;
 
         // DeepL free tier uses api-free.deepl.com, paid uses api.deepl.com

@@ -12,16 +12,16 @@ Supabase needs `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and the 
 
 After logging in, configure the OpenRouter model, system prompt and API key at `/admin/settings`. Existing keys are never sent to the browser. An empty key field preserves the stored key; initial setup requires a key. Translation requires `DEEPL_API_KEY`.
 
-## Deployment and limits
+## Deployment and request sizes
 
 Run `npm run build` and `npm start`. Fonts are bundled locally. Serve the app over **HTTPS** outside localhost and ensure any reverse proxy forwards the `Authorization` header. Set `APP_ORIGIN` to the public HTTPS origin behind a reverse proxy. Cross-origin mutations are rejected. Static framework assets are public; pages, API handlers and the settings action enforce access on the server.
 
-The shared account has separate fixed-window budgets:
+Application access is protected by the shared password. No Redis service or rate-limit configuration is required.
 
-- Chat: 10 requests/minute, 200/day; up to 100 messages, 16,000 characters/message, 64,000 characters/conversation, 300 KB JSON body and 4,096 output tokens.
-- Translation: 30 requests/minute, 1,000/day; up to 5,000 characters and 24 KB JSON body.
+Request size limits:
 
-For one persistent Node process, explicitly set `RATE_LIMIT_STORE=memory`. These counters reset on process restart and are not shared between replicas. For serverless or multiple replicas, configure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`; atomic Redis counters are shared across instances. Production paid APIs fail closed without a selected store, and Redis failures return 503 rather than bypassing the budget. Do not use memory mode with multiple instances. Day windows follow UTC.
+- Chat: up to 100 messages, 16,000 characters/message, 64,000 characters/conversation, 300 KB JSON body and 4,096 output tokens.
+- Translation: up to 5,000 characters and 24 KB JSON body.
 
 Keep `.env.local` out of version control. If the old unprotected app was publicly available, rotate the previously exposed OpenRouter key.
 
