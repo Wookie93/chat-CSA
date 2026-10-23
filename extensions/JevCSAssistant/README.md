@@ -104,3 +104,29 @@ node scripts/evaluate.mjs test/evaluation.examples.json raport-jev.json
 ```
 
 Nie wpisuj klucza do repozytorium ani raportu. Skrypt wysyła wskazane wiadomości do OpenRouter; raport pomija ich treść. Mierzy triaż, ekstrakcję i kalkulator, bez kalendarza. Osiem przykładów startowych nie zastępuje reprezentatywnego zbioru i nie zostało użyte do deklarowania trafności.
+
+### Rozpoznawanie produktów przed wyceną
+
+Jev ustala liczbę różnych pozycji aktualnego zamówienia (do 30), następnie dla
+każdej wybiera jedno ID z katalogu i wiadomość źródłową. W kolejnym kroku odczytuje
+ilości dla uczestników, korzystając z tej listy. Skrypt `priceOrder` nadal sam
+pobiera ceny z katalogu i wykonuje wszystkie obliczenia. Niepewne dopasowanie
+blokuje pełną wycenę. Brak liczby strzałów nie oznacza domyślnej ilości.
+
+Reguła zatwierdzona przez użytkownika: ogólny Glock oznacza Glock 17; jawne
+Glock 19/19X pozostają osobnymi produktami. ID `gun-1` i jego cena są zachowane.
+Reguła nazewnictwa obejmuje również starsze zapisane konfiguracje, bez ich
+nadpisywania. Panel Jev pokazuje rozpoznane produkty i wiadomości źródłowe.
+
+Testy kontraktu używają symulowanych odpowiedzi modelu. Jakość rozpoznawania
+literówek trzeba zmierzyć na żywym modelu poleceniem `scripts/evaluate.mjs`
+z `OPENROUTER_API_KEY`; samo przejście testów kontraktu jej nie dowodzi.
+
+
+Test z rzeczywistym Jev (2026-10-07): po uproszczeniu opcji ilości, ograniczeniu
+kontekstu do dopasowanych produktów i doprecyzowaniu przypisania do osób,
+8 syntetycznych przypadków dało oczekiwane dopasowania i kwoty albo prawidłowo
+wstrzymało wycenę. Raport: `test/evaluation.live-smoke.json`. To mała próba,
+nie gwarancja skuteczności dla wszystkich wiadomości. W jednym przypadku
+niedozwolonej ilości triaż dodatkowo wymagał ręcznego sprawdzenia; cena pozostała
+zablokowana. Progu pewności nie obniżono. Nie testowano wysyłania do Gmaila.

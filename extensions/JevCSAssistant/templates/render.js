@@ -2,8 +2,8 @@ export const DEFAULT_TEMPLATES = {
   pl: 'Dzień dobry,\n\n{{wycena}}\n\n{{dostepnosc}}\n\n{{pytania}}',
   en: 'Hello,\n\n{{wycena}}\n\n{{dostepnosc}}\n\n{{pytania}}',
 };
-const money = (n, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-GB' : 'pl-PL', { style: 'currency', currency: 'PLN' }).format(n / 100);
-export function renderCase(c, templates = DEFAULT_TEMPLATES) {
+export function renderCase(c, templates = DEFAULT_TEMPLATES, moneyOptions = {}) {
+  const money = (n, lang) => new Intl.NumberFormat(lang === 'en' ? 'en-GB' : 'pl-PL', { style: 'currency', currency: 'PLN', ...moneyOptions }).format(n / 100);
   const en = c.language === 'en';
   const sections = { wycena: '', dostepnosc: '', pytania: '' };
   if (c.quote?.status === 'invalid') {

@@ -15,7 +15,7 @@ const settings = () => zUstawieniami({ apiKey: 'secret-api', icalUrl: 'https://s
 const thread = { threadId: 'T1', ostatniaWiadomoscId: 'M1', wiadomosci: [{ id: 'M1', nadawca: 'client@example.com', tekst: '2 osoby. Osoba 1: XYZ 20, osoba 2: ABC 5, 26.10.2027, 30 minut.' }], ostrzezenia: [] };
 function answers(questions, overrides = {}) {
   return Object.fromEntries(Object.entries(questions).map(([id,q]) => {
-    const values = { quote:'yes',availability:'yes',review:'no',language:'pl',people:'2',billingPeople:'2',product_xyz:'yes',product_abc:'yes',day:'26',month:'10',year:String(new Date().getFullYear()+1),time:'missing',duration:'30',unsupported:'no',p1_complete:'yes',p2_complete:'yes',p1_xyz:'20',p1_abc:'none',p2_xyz:'none',p2_abc:'5',...overrides };
+    const values = { quote:'yes',availability:'yes',review:'no',language:'pl',people:'2',billingPeople:'2',productCount:'2',match_1:'item:xyz',source_1:'1',match_2:'item:abc',source_2:'1',day:'26',month:'10',year:String(new Date().getFullYear()+1),time:'missing',duration:'30',unsupported:'no',p1_complete:'yes',p2_complete:'yes',p1_xyz:'20',p1_abc:'none',p2_xyz:'none',p2_abc:'5',...overrides };
     const value = values[id];
     assert.ok(Object.hasOwn(q.criteria,value), `fixture missing ${id}=${value}`);
     return [id, { type:'choice', choice:value,confidence:0.99,probabilities:Object.fromEntries(Object.keys(q.criteria).map(k => [k,k===value?1:0])) }];
@@ -33,7 +33,7 @@ test('mail → Jev → koszyki → dokładna cena → kalendarz → wzorzec bez 
   assert.equal(r.draft.mode,'template');
   assert.match(r.draft.text,/135,30/);
   assert.match(r.draft.text,/wymagają potwierdzenia/);
-  assert.equal(r.metrics.filter(m=>m.calls).length,2);
+  assert.equal(r.metrics.filter(m=>m.calls).length,3);
 });
 test('brak roku nie jest uzupełniany bieżącym; kalendarz nie jest wywoływany',async()=>{
   const c=await analyzeThread({thread,settings:settings(),decideImpl:mock({year:'missing'})});
@@ -121,20 +121,20 @@ test('cennik użytkownika: 90 zł per osoba, cena blokowa bez błędu dzielenia 
   assert.equal(q.totalGrosz,21000);assert.equal(q.personTotals.length,1);
 });
 test('pakiet usuwa opłatę serwisową także przy dodatkowej broni',()=>{
-  const q=priceOrder(basket([{itemId:'basic',quantity:1},{itemId:gun('Glock'),quantity:20}]),CSA_CATALOG);
+  const q=priceOrder(basket([{itemId:'basic',quantity:1},{itemId:gun('Glock 17'),quantity:20}]),CSA_CATALOG);
   assert.equal(q.totalGrosz,32000);assert.ok(!q.lines.some(l=>l.unit==='fee'));
 });
 test('lista bez liczby uczestników to jeden zestaw do wyceny, nie potwierdzona liczba osób w kalendarzu',()=>{
-  const o=basket([{itemId:gun('Glock'),quantity:10}]);o.people=null;
+  const o=basket([{itemId:gun('Glock 17'),quantity:10}]);o.people=null;
   assert.equal(priceOrder(o,CSA_CATALOG).totalGrosz,15000);
 });
 test('15 strzałów Glocka zatrzymuje pełną wycenę i daje wymagany komunikat',()=>{
-  const q=priceOrder(basket([{itemId:gun('Glock'),quantity:15}]),CSA_CATALOG);
+  const q=priceOrder(basket([{itemId:gun('Glock 17'),quantity:15}]),CSA_CATALOG);
   assert.equal(q.status,'invalid');assert.equal(q.totalGrosz,null);
-  const r=renderCase({language:'pl',quote:q,intents:{quote:true},missing:[]});assert.match(r.text,/Błędna liczba strzałów\nOsoba 1: Glock - 15/);
+  const r=renderCase({language:'pl',quote:q,intents:{quote:true},missing:[]});assert.match(r.text,/Błędna liczba strzałów\nOsoba 1: Glock 17 - 15/);
 });
 test('pełne podsumowanie wszystkich osób, każda opłata serwisowa tylko raz',()=>{
-  const o={people:2,participants:[{id:1,complete:true,items:[{itemId:gun('Glock'),quantity:20}]},{id:2,complete:true,items:[{itemId:'vip',quantity:1}]}]};
+  const o={people:2,participants:[{id:1,complete:true,items:[{itemId:gun('Glock 17'),quantity:20}]},{id:2,complete:true,items:[{itemId:'vip',quantity:1}]}]};
   const q=priceOrder(o,CSA_CATALOG);assert.equal(q.totalGrosz,64000);assert.deepEqual(q.personTotals.map(p=>p.totalGrosz),[21000,43000]);
   const r=renderCase({language:'pl',quote:q,intents:{quote:true},missing:[]});assert.equal((r.text.match(/• Osoba /g)||[]).length,2);
 });
@@ -180,9 +180,59 @@ test('niepotwierdzone reguły kalendarza blokują obliczenia zamiast zgadywać m
   assert.throws(()=>calculateAvailability({}, {staffing:'unconfirmed',proposals:'unconfirmed'}),/Wybierz/);
 });
 test('wynik wyceny ma osobne sekcje, opłatę i końcową kwotę dla każdej osoby',()=>{
-  const q=priceOrder(basket([{itemId:gun('Glock'),quantity:20}]),CSA_CATALOG);
+  const q=priceOrder(basket([{itemId:gun('Glock 17'),quantity:20}]),CSA_CATALOG);
   const result=renderCase({language:'pl',quote:q,intents:{quote:true},missing:[]});
-  assert.match(result.text,/Osoba 1\nGlock: 20 strzałów/);
+  assert.match(result.text,/Osoba 1\nGlock 17: 20 strzałów/);
   assert.match(result.text,/Opłata serwisowa: 90,00/);
   assert.match(result.text,/Finalny koszt: 210,00/);
+});
+
+test('dopasowanie nazw przekazuje ID do skryptu; numery modeli nie są ilościami', async () => {
+  const u = zUstawieniami({apiKey:'test'});
+  const luger = u.jev.catalog.items.find(item => item.name === 'P08 Luger');
+  const t = {wiadomosci:[{tekst:'Clock 17\nLugerr'}]};
+  const c = await analyzeThread({thread:t,settings:u,decideImpl:async ({questions,state}) => {
+    if (questions.match_1) {
+      assert.equal(questions.match_1.criteria['item:gun-1'].startsWith('Glock 17'),true);
+      assert.match(questions.match_1.instructions,/Clock 17/);
+      assert.match(questions.match_1.instructions,/Numer modelu/);
+    }
+    if (questions['p1_gun-1']) assert.deepEqual(state.matchedProducts.map(m=>m.itemId),['gun-1',luger.id]);
+    return {answers:answers(questions,{availability:'no',people:'missing',billingPeople:'1',match_1:'item:gun-1',match_2:`item:${luger.id}`, 'p1_gun-1':'missing',[`p1_${luger.id}`]:'missing'}),metrics:{calls:1,costUsd:0,ms:1}};
+  }});
+  assert.deepEqual(c.matches.map(m=>m.name),['Glock 17','P08 Luger']);
+  assert.equal(c.matches[0].sourceText,'Clock 17\nLugerr');
+  assert.equal(priceOrder(c.order,u.jev.catalog).totalGrosz,null);
+});
+
+test('niepewne dopasowanie nie daje pełnej ceny ani draftu', async () => {
+  const c = await analyzeThread({thread,settings:settings(),decideImpl:mock({match_2:'ambiguous'})});
+  const result = await calculateCase(c,settings(),calendar);
+  assert.equal(result.quote.totalGrosz,null);
+  assert.equal(result.draft,null);
+  assert.equal(c.matches[1].itemId,null);
+});
+
+test('niska pewność dopasowania albo źródła wymaga sprawdzenia', async () => {
+  for (const id of ['match_1','source_1']) {
+    const c = await analyzeThread({thread,settings:settings(),decideImpl:async args => {
+      const r = await mock()(args);
+      if (r.answers[id]) r.answers[id].confidence = 0.2;
+      return r;
+    }});
+    assert.notEqual(c.matches[0].status,'matched');
+    assert.equal(priceOrder(c.order,catalog).totalGrosz,null);
+  }
+});
+
+test('stary Glock migruje do Glock 17 bez zmiany ID i ceny, wariant 19 pozostaje osobno', () => {
+  const previous = structuredClone(CSA_CATALOG);
+  previous.items.find(item=>item.id==='gun-1').name='Glock';
+  const u=zUstawieniami({jev:{catalog:previous}});
+  const item=u.jev.catalog.items.find(item=>item.id==='gun-1');
+  assert.equal(item.name,'Glock 17');
+  assert.equal(item.priceGrosz,6000);
+  assert.ok(item.aliases.includes('Glock'));
+  assert.equal(previous.items.find(item=>item.id==='gun-1').name,'Glock');
+  assert.ok(u.jev.catalog.items.some(item=>item.name==='Glock 19'));
 });

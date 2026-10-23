@@ -51,6 +51,8 @@ function Button({
   return (
     <Comp
       data-slot="button"
+      // Firefox otherwise restores disabled state across reloads before hydration.
+      {...(!asChild ? { autoComplete: "off" } : {})}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

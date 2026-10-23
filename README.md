@@ -34,6 +34,31 @@ Instrukcja migracji Supabase, publikacji i podłączenia rozszerzenia: [CENTRAL_
 
 ## Checks
 
+Tryb kalkulatora wybiera się w `/admin/settings` (LLM lub Jev). Wartość
+`app_settings.calculator_mode` jest zapisywana w Supabase; domyślny tryb LLM
+zachowuje dotychczasowe zachowanie. Jev używa tego samego klucza OpenRouter,
+najnowszego opublikowanego katalogu `shared_configuration` (lub dołączonego
+katalogu CSA, gdy brak publikacji) i deterministycznego skryptu wyceny.
+Wersja WWW nie sprawdza kalendarza. Model i prompt LLM nie sterują trybem Jev.
+Migracja ustawienia: `supabase/migrations/20261007204119_calculator_mode.sql`.
+
+Biblioteka wzorców jest wspólna dla prywatnej aplikacji i zapisywana w Supabase
+w tabeli `public.reply_template_library`. Nowy projekt bazy wymaga migracji
+`supabase/migrations/20261007195234_reply_template_library.sql` oraz
+`supabase/migrations/20261022211832_reply_template_categories.sql`.
+Zakładki „Emaile” (`emails`) i „Opinie Google” (`google_reviews`) mają osobne
+rekordy wskazane kolumną `category`, niezależne rewizje i limit po 100 wzorców.
+Istniejące wzorce pozostają w „Emaile”; „Opinie Google” zaczyna jako pusta biblioteka.
+GET `/api/reply-templates?category=google_reviews` wybiera kategorię, a PUT
+przyjmuje `category` w treści żądania. Domyślną kategorią API jest `emails`.
+API `/api/reply-templates` wymaga hasła aplikacji; klucz service role pozostaje
+wyłącznie na serwerze. RLS jest włączone, a role anon/authenticated nie mają
+dostępu do tabeli. Brak polityk RLS jest celowy: dostęp ma tylko serwer.
+Zapis sprawdza numer rewizji danej kategorii, żeby nie nadpisywać zmian innego urządzenia.
+Przycisk odświeżania pobiera aktualną bibliotekę. Import z przeglądarki dodaje
+własne lokalne wzorce do zakładki „Emaile” jako nowe wpisy, pomija identyczne treści i zachowuje
+oryginalne dane w localStorage. Limit każdej kategorii: 100 wzorców.
+
 - `npm run lint`
 - `npm run typecheck`
 - `npm test`

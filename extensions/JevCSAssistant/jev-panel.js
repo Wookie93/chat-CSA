@@ -27,12 +27,25 @@ function display(c) {
   current = c; dirty = false;
   $('jevOrder').value = JSON.stringify(c.order, null, 2);
   displayOrder(c.order);
+  const matches = $('jevMatches');
+  matches.replaceChildren();
+  if (c.matches?.length) {
+    const title = document.createElement('h3'); title.textContent = 'Rozpoznane produkty'; matches.append(title);
+    for (const match of c.matches) {
+      const row = document.createElement('details');
+      const summary = document.createElement('summary');
+      summary.textContent = `${match.position}. ${match.name || 'Nierozpoznana pozycja'} — ${match.status === 'matched' ? 'dopasowano' : 'sprawdź dopasowanie'}`;
+      const source = document.createElement('p'); source.className = 'opis';
+      source.textContent = match.sourceText ? `Wiadomość źródłowa ${match.sourceMessage}: ${match.sourceText}` : 'Brak jednoznacznej wiadomości źródłowej.';
+      row.append(summary, source); matches.append(row);
+    }
+  }
   $('jevReply').value = c.draft?.text || '';
   const issues = [...c.issues, ...c.missing.map(x => `Brak: ${{people:'liczba osób',date:'pełna data',time:'godzina',duration:'czas wizyty',order:'kompletne zamówienie'}[x] || x}`)];
   const costKnown = c.metrics.filter(m => m.calls).every(m => m.costUsd !== null);
   const cost = costKnown ? c.metrics.reduce((s,m) => s + (m.costUsd || 0), 0).toFixed(6) + ' USD' : 'nieznany';
   show(`${c.needsReview ? 'Wymaga sprawdzenia. ' : 'Analiza gotowa. '}${issues.join('; ')}\nKoszt Jev: ${cost}`);
-  $('jevDetails').textContent = JSON.stringify({ intents: c.intents, fields: c.fields, quote: c.quote, availability: c.availability, metrics: c.metrics }, null, 2);
+  $('jevDetails').textContent = JSON.stringify({ intents: c.intents, matches: c.matches, fields: c.fields, quote: c.quote, availability: c.availability, metrics: c.metrics }, null, 2);
 }
 let thread = null;
 $('jevRead').addEventListener('click', () => busy(async () => {
@@ -41,13 +54,14 @@ $('jevRead').addEventListener('click', () => busy(async () => {
   const r = await chrome.tabs.sendMessage(tab.id, { typ: 'ODCZYTAJ_WATEK' });
   if (!r?.ok) throw new Error(r?.blad || 'Nie udało się odczytać wątku.');
   thread = r.dane; sourceTab = tab.id; current = null;
-  $('jevReply').value = ''; $('jevOrder').value = ''; $('jevParticipants').replaceChildren(); $('jevDetails').textContent = '';
+  $('jevReply').value = ''; $('jevOrder').value = ''; $('jevParticipants').replaceChildren(); $('jevMatches').replaceChildren(); $('jevDetails').textContent = '';
   $('jevInput').value = thread.wiadomosci.map(m => m.tekst).join('\n\n');
   show('Wątek wczytany. Kliknij Analizuj.');
 }));
-$('jevInput').addEventListener('input', () => { thread = null; sourceTab = null; current = null; $('jevDraft').disabled = true; });
+$('jevInput').addEventListener('input', () => { $('jevMatches').replaceChildren(); thread = null; sourceTab = null; current = null; $('jevDraft').disabled = true; });
 $('jevAnalyze').addEventListener('click', () => busy(async () => {
   catalogItems = zUstawieniami(await chrome.storage.local.get(KLUCZE_USTAWIEN)).jev.catalog.items;
+  $('jevMatches').replaceChildren();
   show('Jev analizuje wiadomość i uruchamia narzędzia…');
   current = null;
   const r = await chrome.runtime.sendMessage({ typ: 'JEV_ANALYZE', thread: thread || { wiadomosci: [{ tekst: $('jevInput').value }] } });

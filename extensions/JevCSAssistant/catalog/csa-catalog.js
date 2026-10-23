@@ -1,6 +1,6 @@
 // Cennik dostarczony przez użytkownika 2026-09-21. priceGrosz dotyczy baseQuantity.
 export const CSA_CATALOG = {
-  "version": "CSA-2026-09-21",
+  "version": "CSA-2026-09-21-glock17-v1",
   "currency": "PLN",
   "approved": true,
   "serviceFeeGrosz": 9000,
@@ -107,7 +107,7 @@ export const CSA_CATALOG = {
     },
     {
       "id": "gun-1",
-      "name": "Glock",
+      "name": "Glock 17",
       "unit": "shot",
       "priceGrosz": 6000,
       "baseQuantity": 10,
@@ -213,7 +213,7 @@ export const CSA_CATALOG = {
         990,
         1000
       ],
-      "aliases": []
+      "aliases": ["Glock", "Clock 17"]
     },
     {
       "id": "gun-2",

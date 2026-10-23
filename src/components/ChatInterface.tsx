@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useTransition } from 'react';
 import { PlusCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -10,23 +10,30 @@ import { type Message } from '@/components/ui/chat-message';
 import { CopyButton } from '@/components/ui/copy-button';
 import { MessageInput } from '@/components/ui/message-input';
 import { MessageList } from '@/components/ui/message-list';
-import { PromptSuggestions } from '@/components/ui/prompt-suggestions';
 import { useChat } from '@/app/chat/hooks';
+import { ReplyTemplates } from '@/components/ReplyTemplates';
+import { changeCalculatorMode } from '@/lib/actions';
 
-const SUGGESTIONS = [
-    'Jakie pakiety są dostępne i czym się różnią?',
-    'Który pakiet polecasz na początek?',
-    'Jak wygląda kwestia transportu?',
-];
+export function ChatInterface({ calculatorMode = 'llm' }: { calculatorMode?: 'llm' | 'jev' }) {
+    const [isChangingMode, startModeTransition] = useTransition();
+    const handleModeChange = (mode: 'llm' | 'jev') => {
+        if (mode === calculatorMode) return;
+        startModeTransition(async () => {
+            try {
+                const result = await changeCalculatorMode(mode);
+                if (!result.success) toast.error(result.error);
+            } catch {
+                toast.error('Nie udało się zmienić trybu. Spróbuj ponownie.');
+            }
+        });
+    };
 
-export function ChatInterface() {
     const {
         messages,
         input,
         setInput,
         handleInputChange,
         handleSubmit,
-        append,
         stop,
         isGenerating,
         setMessages,
@@ -35,7 +42,6 @@ export function ChatInterface() {
     });
 
     const lastMessage = messages.at(-1);
-    const isEmpty = messages.length === 0;
     const isTyping = isGenerating && lastMessage?.role === 'user';
 
     const handleNewChat = async () => {
@@ -55,9 +61,24 @@ export function ChatInterface() {
     );
 
     return (
-        <div className="flex h-full w-full max-w-5xl mx-auto flex-col min-h-0">
+        <div className="grid h-full min-h-0 w-full grid-rows-[minmax(0,3fr)_minmax(0,2fr)] gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:grid-rows-1 lg:gap-0">
+        <section aria-label="Czat" className="flex min-h-0 min-w-0 flex-col lg:pr-5">
             <div className="flex items-center justify-between pb-3">
-                <h1 className="text-lg font-medium">Chat</h1>
+                <div className="flex flex-wrap items-center gap-2">
+                    <h1 className="text-lg font-medium">Chat</h1>
+                    <select
+                        aria-label="Tryb czatu"
+                        aria-busy={isChangingMode}
+                        value={calculatorMode}
+                        onChange={(event) => handleModeChange(event.target.value as 'llm' | 'jev')}
+                        disabled={isChangingMode || isGenerating}
+                        className="rounded-md border bg-background px-2 py-1 text-xs text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-50"
+                    >
+                        <option value="llm">Tryb: LLM</option>
+                        <option value="jev">Tryb: Jev + kalkulator</option>
+                    </select>
+                    {isChangingMode && <span role="status" className="text-xs text-muted-foreground">Zapisywanie…</span>}
+                </div>
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <Button
@@ -76,25 +97,18 @@ export function ChatInterface() {
             </div>
 
             <ChatContainer className="flex-1 min-h-0 grid-rows-[minmax(0,1fr)_auto]">
-                {isEmpty ? (
-                    <div className="flex items-center justify-center px-2">
-                        <PromptSuggestions
-                            label="Od czego zaczniemy? ✨"
-                            append={append}
-                            suggestions={SUGGESTIONS}
-                        />
-                    </div>
-                ) : (
-                    <ChatMessages messages={messages}>
-                        <MessageList
-                            messages={messages}
-                            isTyping={isTyping}
-                            messageOptions={messageOptions}
-                        />
-                    </ChatMessages>
-                )}
+                <ChatMessages messages={messages}>
+                    <MessageList
+                        messages={messages}
+                        isTyping={isTyping}
+                        messageOptions={messageOptions}
+                    />
+                </ChatMessages>
 
-                <ChatForm className="mt-auto pt-2" isPending={isGenerating} handleSubmit={handleSubmit}>
+                <ChatForm className="mt-auto pt-2" isPending={isGenerating || isChangingMode} handleSubmit={(event) => {
+                    if (isChangingMode) { event?.preventDefault?.(); return; }
+                    return handleSubmit(event);
+                }}>
                     {() => (
                         <MessageInput
                             id="chat-message-input"
@@ -107,6 +121,8 @@ export function ChatInterface() {
                     )}
                 </ChatForm>
             </ChatContainer>
+        </section>
+        <ReplyTemplates />
         </div>
     );
 }

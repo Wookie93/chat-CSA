@@ -12,7 +12,7 @@ export function PromptSuggestions({
   return (
     <div className="space-y-6">
       <h2 className="text-center text-2xl font-bold">{label}</h2>
-      <div className="flex gap-6 text-sm">
+      <div className="flex flex-col gap-2 text-sm xl:flex-row xl:gap-3">
         {suggestions.map((suggestion) => (
           <button
             key={suggestion}

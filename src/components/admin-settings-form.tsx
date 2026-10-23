@@ -25,6 +25,7 @@ import { Loader2, Save } from 'lucide-react';
 interface AdminSettingsFormProps {
     hasApiKey: boolean;
     initialSettings: {
+        calculator_mode: 'llm' | 'jev';
         openrouter_api_key: string;
         openrouter_model: string;
         system_prompt: string;
@@ -43,6 +44,7 @@ export function AdminSettingsForm({ initialSettings, hasApiKey }: AdminSettingsF
         setIsSubmitting(true);
         try {
             const formData = new FormData();
+            formData.append('calculator_mode', data.calculator_mode);
             formData.append('openrouter_api_key', data.openrouter_api_key);
             formData.append('openrouter_model', data.openrouter_model);
             formData.append('system_prompt', data.system_prompt);
@@ -71,15 +73,32 @@ export function AdminSettingsForm({ initialSettings, hasApiKey }: AdminSettingsF
     return (
         <Card className="max-w-2xl">
             <CardHeader>
-                <CardTitle>Chat Configuration</CardTitle>
+                <CardTitle>Ustawienia czatu i kalkulatora</CardTitle>
                 <CardDescription>
-                    Manage your AI chat settings, API keys, and system prompts.
+                    Wybierz sposób przygotowania odpowiedzi i wyceny.
                 </CardDescription>
             </CardHeader>
             <Separator />
             <CardContent className="pt-6">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                        <FormField control={form.control} name="calculator_mode" render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Tryb kalkulatora</FormLabel>
+                                <FormControl>
+                                    <select {...field} className="h-10 w-full rounded-md border bg-background px-3 text-sm">
+                                        <option value="llm">LLM — odpowiedź według modelu i promptu</option>
+                                        <option value="jev">Jev — rozpoznawanie zamówienia + skrypt liczący</option>
+                                    </select>
+                                </FormControl>
+                                <FormDescription>
+                                    LLM korzysta z modelu i promptu poniżej. Jev rozpoznaje produkty i ilości,
+                                    a skrypt liczy ceny według katalogu CSA. Oba tryby korzystają z zapisanego klucza OpenRouter.
+                                    Jev nie ma w tej aplikacji połączenia z kalendarzem.
+                                </FormDescription>
+                                <FormMessage />
+                            </FormItem>
+                        )} />
                         <FormField
                             control={form.control}
                             name="openrouter_api_key"
@@ -108,7 +127,7 @@ export function AdminSettingsForm({ initialSettings, hasApiKey }: AdminSettingsF
                             name="openrouter_model"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Primary Model</FormLabel>
+                                    <FormLabel>Model LLM</FormLabel>
                                     <FormControl>
                                         <Input
                                             id="openrouter-model-input"
@@ -129,7 +148,7 @@ export function AdminSettingsForm({ initialSettings, hasApiKey }: AdminSettingsF
                             name="system_prompt"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>System Prompt</FormLabel>
+                                    <FormLabel>Prompt systemowy LLM</FormLabel>
                                     <FormControl>
                                         <Textarea
                                             id="system-prompt-input"
@@ -161,7 +180,7 @@ export function AdminSettingsForm({ initialSettings, hasApiKey }: AdminSettingsF
                             ) : (
                                 <>
                                     <Save className="h-4 w-4" />
-                                    Save Settings
+                                    Zapisz ustawienia
                                 </>
                             )}
                         </Button>

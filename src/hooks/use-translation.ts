@@ -4,9 +4,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 export function useTranslation(sourceText: string, sourceLang: string, targetLang: string) {
-  const [translatedText, setTranslatedText] = useState('');
-  const [detectedLang, setDetectedLang] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const inputKey = JSON.stringify([sourceText, sourceLang, targetLang]);
+  const [result, setResult] = useState<{ inputKey: string; text: string; detectedLang: string | null } | null>(null);
+  const [loadingKey, setLoadingKey] = useState<string | null>(null);
+  // Hide stale results during render, before the effect starts the debounce timer.
+  const currentResult = result?.inputKey === inputKey ? result : null;
+  const translatedText = currentResult?.text ?? '';
+  const detectedLang = currentResult?.detectedLang ?? null;
+  const isLoading = loadingKey === inputKey;
+  const setTranslatedText = useCallback((text: string) => {
+    setResult(previous => previous?.inputKey === inputKey ? { ...previous, text } : previous);
+  }, [inputKey]);
   const requestRef = useRef<AbortController | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -15,9 +23,8 @@ export function useTranslation(sourceText: string, sourceLang: string, targetLan
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    setTranslatedText('');
-    setDetectedLang(null);
-    setIsLoading(Boolean(sourceText.trim()));
+    setResult(null);
+    setLoadingKey(sourceText.trim() ? inputKey : null);
     if (!sourceText.trim()) return;
 
     try {
@@ -30,16 +37,15 @@ export function useTranslation(sourceText: string, sourceLang: string, targetLan
       const data = await res.json();
       if (controller.signal.aborted || requestRef.current !== controller) return;
       if (!res.ok) throw new Error(data.error ?? 'Translation failed');
-      setTranslatedText(data.translatedText);
-      setDetectedLang(data.detectedSourceLang ?? null);
+      setResult({ inputKey, text: data.translatedText, detectedLang: data.detectedSourceLang ?? null });
     } catch (error) {
       if (!controller.signal.aborted && requestRef.current === controller) {
         toast.error(error instanceof Error ? error.message : 'Translation failed');
       }
     } finally {
-      if (!controller.signal.aborted && requestRef.current === controller) setIsLoading(false);
+      if (!controller.signal.aborted && requestRef.current === controller) setLoadingKey(null);
     }
-  }, [sourceText, sourceLang, targetLang]);
+  }, [sourceText, sourceLang, targetLang, inputKey]);
 
   useEffect(() => {
     // Invalidate the old response immediately, including the debounce interval.
@@ -51,5 +57,5 @@ export function useTranslation(sourceText: string, sourceLang: string, targetLan
     };
   }, [handleTranslate, sourceText]);
 
-  return { translatedText, setTranslatedText, detectedLang, setDetectedLang, isLoading, handleTranslate };
+  return { translatedText, setTranslatedText, detectedLang, isLoading, handleTranslate };
 }

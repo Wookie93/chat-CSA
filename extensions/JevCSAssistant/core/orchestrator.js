@@ -1,9 +1,10 @@
 import { configurationStamp } from '../central/schema.mjs';
 import { decide } from '../ai/jev-client.js';
-import { triageQuestions, catalogQuestions, orderQuestions, field } from '../ai/questions.js';
+import { triageQuestions, matchingQuestions, orderQuestions, field } from '../ai/questions.js';
 import { validateCatalog, EMPTY_CATALOG } from '../catalog/catalog.js';
 import { priceOrder, visitDuration } from '../tools/pricing.js';
 import { renderCase } from '../templates/render.js';
+import { recognitionCatalog } from './product-names.js';
 
 export function fingerprint(thread) {
   // Full canonical snapshot rather than a lossy/non-cryptographic hash.
@@ -22,7 +23,7 @@ function cleanText(text, secrets) {
     .replace(/(?:\+?\d[ -]?){9,}/g, '[telefon]');
 }
 export async function analyzeThread({ thread, settings, signal, decideImpl = decide }) {
-  const catalog = validateCatalog(settings.jev.catalog || EMPTY_CATALOG);
+  const catalog = recognitionCatalog(validateCatalog(settings.jev.catalog || EMPTY_CATALOG));
   const threshold = settings.jev.threshold;
   if (!Number.isFinite(threshold) || threshold < 0.5 || threshold > 1) throw new Error('Nieprawidłowy próg pewności.');
   const now = new Date();
@@ -37,12 +38,27 @@ export async function analyzeThread({ thread, settings, signal, decideImpl = dec
   const metrics = [];
   const deadline = Date.now() + 45000;
   const ask = async questions => {
+    if (metrics.length >= 8) throw new Error('Przekroczono budżet 8 wywołań Jev. Uzupełnij ręcznie.');
     if (signal?.aborted) throw new Error('Anulowano analizę.');
     if (Date.now() >= deadline) throw new Error('Przekroczono budżet 45 s analizy Jev.');
     const r = await decideImpl({ timeoutMs: Math.min(20000, deadline-Date.now()), apiKey: settings.apiKey, model: settings.jev.model, state, questions, signal });
     metrics.push(r.metrics); return r.answers;
   };
-  const raw = await ask({ ...triageQuestions(now.getFullYear()), ...catalogQuestions(catalog) });
+  const askBatched = async questions => {
+    const batches = []; let batch = {};
+    for (const [id, q] of Object.entries(questions)) {
+      if (Object.keys(batch).length && (Object.keys(batch).length >= 100 || JSON.stringify({state, questions:{...batch,[id]:q}}).length > 60000)) {
+        batches.push(batch); batch = {};
+      }
+      batch[id] = q;
+    }
+    if (Object.keys(batch).length) batches.push(batch);
+    if (metrics.length + batches.length > 8) throw new Error('Zamówienie przekracza budżet 8 wywołań Jev. Uzupełnij ręcznie.');
+    let answers = {};
+    for (const batch of batches) answers = { ...answers, ...await ask(batch) };
+    return answers;
+  };
+  const raw = await ask(triageQuestions(now.getFullYear()));
   const fields = Object.fromEntries(Object.entries(raw).map(([id, a]) => [id, { ...field(a, threshold), questionId: id }]));
   const get = k => fields[k]?.value;
   const issues = [...(thread.ostrzezenia || [])];
@@ -59,25 +75,35 @@ export async function analyzeThread({ thread, settings, signal, decideImpl = dec
     durationMin: /^\d+$/.test(get('duration') || '') ? Number(get('duration')) : null, durationSource: 'message', participants: [] };
   if (order.date && order.date < state.today) { order.date = null; issues.push('Termin znajduje się w przeszłości.'); }
   if (get('unsupported') !== 'no' && intents.quote) issues.push('Niejasne zamówienie lub pozycje poza katalogiem.');
-  const selected = catalog.items.filter(item => get(`product_${item.id}`) === 'yes');
-  if (catalog.items.some(item => get(`product_${item.id}`) !== 'no' && get(`product_${item.id}`) !== 'yes')) issues.push('Niepewne dopasowanie produktów katalogu.');
-  if (billingPeople && selected.length && (intents.quote || intents.availability)) {
-    const questions = orderQuestions(billingPeople, { ...catalog, items: selected });
-    // Split only when size requires it; no truncation of a participant or order.
-    const batches = []; let batch = {};
-    for (const [id, q] of Object.entries(questions)) {
-      if (Object.keys(batch).length && (Object.keys(batch).length >= 100 || JSON.stringify({state,questions:{...batch,[id]:q}}).length > 60000)) {
-        batches.push(batch); batch = {};
-      }
-      batch[id] = q;
+  const matches = [];
+  const count = /^\d+$/.test(get('productCount') || '') ? Number(get('productCount')) : null;
+  if ((intents.quote || intents.availability) && count === null) issues.push('Nie udało się ustalić pełnej listy produktów.');
+  if ((intents.quote || intents.availability) && count > 0) {
+    const answers = await askBatched(matchingQuestions(count, catalog, state.messages));
+    for (let n = 1; n <= count; n++) {
+      const product = field(answers[`match_${n}`], threshold);
+      const source = field(answers[`source_${n}`], threshold);
+      fields[`match_${n}`] = product;
+      fields[`source_${n}`] = source;
+      const item = catalog.items.find(item => `item:${item.id}` === product.value);
+      const message = state.messages.find(message => String(message.index) === source.value);
+      matches.push({ position: n, itemId: item?.id ?? null, name: item?.name ?? null,
+        sourceMessage: message?.index ?? null, sourceText: message?.text ?? null,
+        status: item && message ? 'matched' : product.status === 'known' ? 'ambiguous' : product.status,
+        confidence: product.confidence });
+      if (!item || !message) issues.push(`Pozycja ${n}: dopasowanie wymaga sprawdzenia.`);
     }
-    if (Object.keys(batch).length) batches.push(batch);
-    if (batches.length > 7) issues.push('Zamówienie przekracza budżet 8 wywołań Jev. Uzupełnij ręcznie.');
-    else {
-      let answers = {};
-      for (const b of batches) answers = { ...answers, ...await ask(b) };
+  }
+  state.matchedProducts = matches.map(({ position, itemId, sourceMessage, status }) => ({ position, itemId, sourceMessage, status }));
+  const selected = catalog.items.filter(item => matches.some(match => match.itemId === item.id && match.status === 'matched'));
+  if (intents.quote && !selected.length) issues.push('Brak rozpoznanych pozycji do wyceny.');
+  if (billingPeople && selected.length && (intents.quote || intents.availability)) {
+    state.catalog = state.catalog.filter(item => selected.some(selectedItem => selectedItem.id === item.id));
+    const answers = await askBatched(orderQuestions(billingPeople, { ...catalog, items: selected }));
       for (let p = 1; p <= billingPeople; p++) {
-        const participant = { id: p, complete: field(answers[`p${p}_complete`], threshold).value === 'yes', items: [] };
+        const complete = field(answers[`p${p}_complete`], threshold);
+        fields[`p${p}_complete`] = { ...complete, questionId: `p${p}_complete` };
+        const participant = { id: p, complete: matches.every(match => match.status === 'matched') && complete.value === 'yes', items: [] };
         for (const item of selected) {
           const id = `p${p}_${item.id}`;
           const f = field(answers[id], threshold); fields[id] = { ...f, questionId: id };
@@ -87,11 +113,10 @@ export async function analyzeThread({ thread, settings, signal, decideImpl = dec
         }
         order.participants.push(participant);
       }
-    }
   }
   return { schemaVersion: 1, runId: crypto.randomUUID(), threadId: thread.threadId || null,
     lastMessageId: thread.ostatniaWiadomoscId || null, snapshot: fingerprint(thread), analyzedAt: now.toISOString(),
-    intents, language, order, fields, issues, metrics, catalogVersion: catalog.version };
+    intents, language, order, matches, fields, issues, metrics, catalogVersion: catalog.version };
 }
 export async function calculateCase(c, settings, availability) {
   if (c?.schemaVersion !== 1) throw new Error('Nieobsługiwana wersja analizy. Przeanalizuj mail ponownie.');

@@ -11,8 +11,8 @@ globalThis.chrome={
         const {zUstawieniami}=await import('../config.js');
         const settings=zUstawieniami({apiKey:'preview-only'});
         const decideImpl=async({questions})=>({metrics:{ms:5,calls:1,costUsd:0},answers:Object.fromEntries(Object.entries(questions).map(([id,q])=>{
-          const values={quote:'yes',availability:'yes',review:'no',language:'pl',people:'2',billingPeople:'2',day:'26',month:'10',year:'2027',time:'missing',duration:'30',unsupported:'no',p1_complete:'yes',p2_complete:'yes',p1_basic:'1',p2_basic:'1'};
-          const choice=id.startsWith('product_')?(id==='product_basic'?'yes':'no'):values[id];
+          const values={productCount:'1',match_1:'item:basic',source_1:'1',quote:'yes',availability:'yes',review:'no',language:'pl',people:'2',billingPeople:'2',day:'26',month:'10',year:'2027',time:'missing',duration:'30',unsupported:'no',p1_complete:'yes',p2_complete:'yes',p1_basic:'1',p2_basic:'1'};
+          const choice=values[id];
           return[id,{type:'choice',choice,confidence:0.99,probabilities:Object.fromEntries(Object.keys(q.criteria).map(k=>[k,k===choice?1:0]))}];
         }))});
         const c=m.typ==='JEV_ANALYZE'?await analyzeThread({thread:m.thread,settings,decideImpl}):m.case;

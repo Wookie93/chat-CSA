@@ -5,6 +5,7 @@ import { chatRequestSchema } from '@/lib/schemas';
 import { checkAppAccess, checkMutationOrigin } from '@/lib/access';
 import { checkRateLimit, readJsonBody, RequestError } from '@/lib/request-limits';
 import { createChatStreamResponse } from '@/lib/chat-stream';
+import { calculateWithJev } from '@/lib/jev-calculator';
 
 export async function POST(req: Request) {
   const denied = checkAppAccess(req.headers.get('authorization')) ?? checkMutationOrigin(req);
@@ -19,6 +20,14 @@ export async function POST(req: Request) {
       return Response.json({ error: 'Configure the API key in admin settings.' }, { status: 400 });
     }
     const controller = new AbortController();
+    if (settings.calculator_mode === 'jev') {
+      const text = await calculateWithJev(parsed.data.messages, settings.openrouter_api_key,
+        AbortSignal.any([req.signal, controller.signal, AbortSignal.timeout(60000)]));
+      return createChatStreamResponse((async function* () {
+        yield { type: 'text-delta', text };
+        yield { type: 'finish' };
+      })(), () => controller.abort());
+    }
     const openrouter = createOpenRouter({ apiKey: settings.openrouter_api_key });
     const result = streamText({
       model: openrouter.chat(settings.openrouter_model),

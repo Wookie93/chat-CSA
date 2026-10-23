@@ -137,7 +137,7 @@ function stubFetch() {
       if (body.questions) {
         stan.ostatniePytania = body.questions;
         stan.ostatniStan = body.state;
-        const values = { quote:'no', availability:'yes', review:'no', language:'pl', people:'4', billingPeople:'4', day:'18', month:'5', year:'missing', time:'14:00', duration:'30', unsupported:'no' };
+        const values = { productCount:'0', quote:'no', availability:'yes', review:'no', language:'pl', people:'4', billingPeople:'4', day:'18', month:'5', year:'missing', time:'14:00', duration:'30', unsupported:'no' };
         const answers = Object.fromEntries(Object.entries(body.questions).map(([id,q]) => [id, {
           type:'choice', choice:values[id], confidence:0.99,
           probabilities:Object.fromEntries(Object.keys(q.criteria).map(k => [k,k===values[id]?1:0]))

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { ArrowLeftRight, Copy, Check, Loader2, Languages, Replace } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -62,18 +62,24 @@ const MAX_CHARS = 5000;
 // ──────────────────────────────────────────────────
 
 interface SynonymPopoverProps {
+    id: string;
     word: string;
     anchorRect: DOMRect;
     containerRef: React.RefObject<HTMLDivElement | null>;
     onSelect: (synonym: string) => void;
-    onClose: () => void;
+    triggerRef: React.RefObject<HTMLButtonElement | null>;
+    onClose: (restoreFocus?: boolean) => void;
 }
 
-function SynonymPopover({ word, anchorRect, containerRef, onSelect, onClose }: SynonymPopoverProps) {
+function SynonymPopover({ id, word, anchorRect, containerRef, triggerRef, onSelect, onClose }: SynonymPopoverProps) {
     const [synonyms, setSynonyms] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        popoverRef.current?.focus();
+    }, []);
 
     // Fetch synonyms
     useEffect(() => {
@@ -88,16 +94,17 @@ function SynonymPopover({ word, anchorRect, containerRef, onSelect, onClose }: S
                     { signal: controller.signal }
                 );
                 const data = await res.json();
+                if (controller.signal.aborted) return;
                 if (!res.ok) {
                     setError(data.error ?? 'Failed to load synonyms');
                     return;
                 }
                 setSynonyms(data.synonyms ?? []);
             } catch (err) {
-                if (err instanceof DOMException && err.name === 'AbortError') return;
+                if (controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) return;
                 setError('Could not fetch synonyms');
             } finally {
-                setIsLoading(false);
+                if (!controller.signal.aborted) setIsLoading(false);
             }
         }
 
@@ -108,8 +115,8 @@ function SynonymPopover({ word, anchorRect, containerRef, onSelect, onClose }: S
     // Close on outside click
     useEffect(() => {
         function handleClick(e: MouseEvent) {
-            if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
-                onClose();
+            if (popoverRef.current && !popoverRef.current.contains(e.target as Node) && !triggerRef.current?.contains(e.target as Node)) {
+                onClose(false);
             }
         }
         function handleEsc(e: KeyboardEvent) {
@@ -121,7 +128,7 @@ function SynonymPopover({ word, anchorRect, containerRef, onSelect, onClose }: S
             document.removeEventListener('mousedown', handleClick);
             document.removeEventListener('keydown', handleEsc);
         };
-    }, [onClose]);
+    }, [onClose, triggerRef]);
 
     // Position calculation – relative to the container
     const containerRect = containerRef.current?.getBoundingClientRect();
@@ -134,7 +141,14 @@ function SynonymPopover({ word, anchorRect, containerRef, onSelect, onClose }: S
 
     return (
         <div
+            id={id}
             ref={popoverRef}
+            role="dialog"
+            aria-label={`Synonyms for ${word}`}
+            tabIndex={-1}
+            onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null) && event.relatedTarget !== triggerRef.current) onClose(false);
+            }}
             className="synonym-popover"
             style={{
                 position: 'absolute',
@@ -171,6 +185,7 @@ function SynonymPopover({ word, anchorRect, containerRef, onSelect, onClose }: S
                         {synonyms.map((syn) => (
                             <li key={syn}>
                                 <button
+                                    type="button"
                                     className="synonym-popover-item"
                                     onClick={() => onSelect(syn)}
                                 >
@@ -197,17 +212,19 @@ interface TranslatedTextProps {
 
 /**
  * Tokenises translated text into words and whitespace/punctuation.
- * Words become clickable spans for synonym lookup.
+ * Words become buttons for synonym lookup.
  */
 function TranslatedText({ text, canShowSynonyms, onTextChange }: TranslatedTextProps) {
     const [activeWordIndex, setActiveWordIndex] = useState<number | null>(null);
     const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement | null>(null);
+    const popoverId = useId();
 
     // Tokenise text into words and non-words
     const tokens = text.match(/[\p{L}\p{N}]+|[^\p{L}\p{N}]+/gu) ?? [];
 
-    const handleWordClick = (index: number, event: React.MouseEvent<HTMLSpanElement>) => {
+    const handleWordClick = (index: number, event: React.MouseEvent<HTMLButtonElement>) => {
         if (!canShowSynonyms) return;
         const token = tokens[index];
         // Only trigger for actual words (not punctuation / whitespace)
@@ -218,6 +235,7 @@ function TranslatedText({ text, canShowSynonyms, onTextChange }: TranslatedTextP
             setAnchorRect(null);
             return;
         }
+        triggerRef.current = event.currentTarget;
         setActiveWordIndex(index);
         setAnchorRect(event.currentTarget.getBoundingClientRect());
     };
@@ -238,14 +256,16 @@ function TranslatedText({ text, canShowSynonyms, onTextChange }: TranslatedTextP
         const newTokens = [...tokens];
         newTokens[activeWordIndex] = replacement;
         onTextChange(newTokens.join(''));
+        triggerRef.current?.focus();
         setActiveWordIndex(null);
         setAnchorRect(null);
     };
 
-    const handleClose = useCallback(() => {
+    const handleClose = (restoreFocus?: boolean) => {
+        if (restoreFocus !== false) triggerRef.current?.focus();
         setActiveWordIndex(null);
         setAnchorRect(null);
-    }, []);
+    };
 
     return (
         <div ref={containerRef} className="relative">
@@ -256,22 +276,29 @@ function TranslatedText({ text, canShowSynonyms, onTextChange }: TranslatedTextP
                         return <span key={idx}>{token}</span>;
                     }
                     return (
-                        <span
+                        <button
+                            type="button"
                             key={idx}
+                            aria-haspopup="dialog"
+                            aria-expanded={activeWordIndex === idx}
+                            aria-controls={activeWordIndex === idx ? popoverId : undefined}
                             onClick={(e) => handleWordClick(idx, e)}
                             className={`synonym-word ${activeWordIndex === idx ? 'synonym-word-active' : ''}`}
                         >
                             {token}
-                        </span>
+                        </button>
                     );
                 })}
             </p>
 
             {activeWordIndex !== null && anchorRect && (
                 <SynonymPopover
+                    key={activeWordIndex}
+                    id={popoverId}
                     word={tokens[activeWordIndex]}
                     anchorRect={anchorRect}
                     containerRef={containerRef}
+                    triggerRef={triggerRef}
                     onSelect={handleSynonymSelect}
                     onClose={handleClose}
                 />
@@ -291,24 +318,25 @@ export default function TranslatorPage() {
     const [copied, setCopied] = useState(false);
     const {
         translatedText, setTranslatedText, detectedLang: detectedCode,
-        setDetectedLang, isLoading, handleTranslate,
+        isLoading, handleTranslate,
     } = useTranslation(sourceText, sourceLang, targetLang);
     const detectedLang = LANGUAGES.find((language) => language.code === detectedCode)?.label ?? detectedCode;
     const canShowSynonyms = SYNONYM_LANGUAGES.includes(targetLang);
+    const canUseTranslation = Boolean(translatedText.trim()) && !isLoading;
+    const canSwap = sourceLang !== 'AUTO' && canUseTranslation;
 
     const handleSwap = () => {
-        if (sourceLang === 'AUTO') return;
+        if (!canSwap) return;
         const prevSource = sourceLang;
         const prevTarget = targetLang;
         setSourceLang(prevTarget);
         setTargetLang(prevSource);
         setSourceText(translatedText);
         setTranslatedText('');
-        setDetectedLang(null);
     };
 
     const handleCopy = async () => {
-        if (!translatedText) return;
+        if (!canUseTranslation) return;
         try {
             await navigator.clipboard.writeText(translatedText);
             setCopied(true);
@@ -339,10 +367,7 @@ export default function TranslatorPage() {
                     <div className="flex-1">
                         <Select
                             value={sourceLang}
-                            onValueChange={(value) => {
-                                setSourceLang(value);
-                                setDetectedLang(null);
-                            }}
+                            onValueChange={setSourceLang}
                         >
                             <SelectTrigger id="source-language-select">
                                 <SelectValue placeholder="Select source language" />
@@ -364,7 +389,7 @@ export default function TranslatorPage() {
                                 variant="outline"
                                 size="icon"
                                 onClick={handleSwap}
-                                disabled={sourceLang === 'AUTO' || isLoading}
+                                disabled={!canSwap}
                                 className="shrink-0"
                             >
                                 <ArrowLeftRight className="h-4 w-4" />
@@ -409,7 +434,7 @@ export default function TranslatorPage() {
                             <Separator />
                             <div className="flex items-center justify-between pt-1">
                                 <span className={`text-xs ${charCount > MAX_CHARS * 0.9 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                                    {charCount.toLocaleString()} / {MAX_CHARS.toLocaleString()}
+                                    {charCount.toLocaleString('en-US')} / {MAX_CHARS.toLocaleString('en-US')}
                                 </span>
                                 <Button
                                     id="translate-button"
@@ -477,7 +502,7 @@ export default function TranslatorPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={handleCopy}
-                                            disabled={!translatedText}
+                                            disabled={!canUseTranslation}
                                             className="gap-1.5"
                                         >
                                             {copied ? (

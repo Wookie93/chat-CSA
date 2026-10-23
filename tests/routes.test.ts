@@ -55,7 +55,7 @@ it('never passes the stored API key to the settings client component', async () 
 it('allows saving a model/prompt without sending the stored key back', async () => {
   mocks.headerList.set('authorization', authorization);
   expect(await updateSettings(formData())).toEqual({ success: true });
-  expect(mocks.updateSettings).toHaveBeenCalledWith({ openrouter_api_key: '', openrouter_model: 'test/model', system_prompt: 'helpful' });
+  expect(mocks.updateSettings).toHaveBeenCalledWith({ calculator_mode: 'llm', openrouter_api_key: '', openrouter_model: 'test/model', system_prompt: 'helpful' });
 });
 
 it('rejects cross-origin mutations even when the browser supplies credentials', () => {

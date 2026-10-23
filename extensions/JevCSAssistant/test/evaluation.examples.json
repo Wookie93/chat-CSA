@@ -6,5 +6,11 @@
   {"id":"package-plus-gun","text":"Wycena dla jednej osoby: Basic i dodatkowo 20 strzałów z Glocka.","expected":{"people":1,"totalGrosz":32000,"quoteStatus":"complete"}},
   {"id":"two-different","text":"Dwie osoby: pierwsza chce Glock 20 strzałów, druga pakiet VIP. Poproszę o cenę.","expected":{"people":2,"billingPeople":2,"totalGrosz":64000,"quoteStatus":"complete"}},
   {"id":"missing-quantity","text":"Poproszę o cenę dla jednej osoby, chce postrzelać z Glocka.","expected":{"people":1,"totalGrosz":null,"quoteStatus":"incomplete"}},
-  {"id":"ppsh-alias","text":"Jedna osoba, PPSh-41 10 strzałów. Proszę policzyć.","expected":{"people":1,"totalGrosz":15000,"quoteStatus":"complete"}}
+  {"id":"ppsh-alias","text":"Jedna osoba, PPSh-41 10 strzałów. Proszę policzyć.","expected":{"people":1,"totalGrosz":15000,"quoteStatus":"complete"}},
+  {"id":"typos-missing-quantity","text":"Proszę o cenę dla jednej osoby: Clock 17, Lugerr.","expected":{"billingPeople":1,"totalGrosz":null,"quoteStatus":"incomplete"}},
+  {"id":"clock17-explicit-shots","text":"Proszę o wycenę dla jednej osoby: Clock 17 — 20 strzałów.","expected":{"billingPeople":1,"totalGrosz":21000,"quoteStatus":"complete"}},
+  {"id":"glock-default","text":"Jedna osoba, Glock — 10 strzałów. Jaka cena?","expected":{"billingPeople":1,"totalGrosz":15000,"quoteStatus":"complete"}},
+  {"id":"two-typos-with-quantities","text":"Jedna osoba: Clok 17 - 10 strzałów oraz Lugerr - 7 strzałów. Proszę o wycenę.","expected":{"billingPeople":1,"matchedNames":["Glock 17","P08 Luger"],"totalGrosz":22000,"quoteStatus":"complete"}},
+  {"id":"two-people-typos","text":"Poproszę o wycenę dla 2 osób. Osoba 1: Clock 17, 10 strzałów. Osoba 2: Lugerr, 7 strzałów.","expected":{"billingPeople":2,"matchedNames":["Glock 17","P08 Luger"],"totalGrosz":31000,"quoteStatus":"complete"}},
+  {"id":"explicit-glock19x","text":"Jedna osoba chce Glock 19X, 10 strzałów. Ile zapłaci?","expected":{"matchedNames":["Glock 19X"],"totalGrosz":15000,"quoteStatus":"complete"}}
 ]

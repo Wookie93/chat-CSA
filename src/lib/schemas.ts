@@ -10,6 +10,7 @@ export const appSettingsSchema = z.object({
 
 // Schema for updating settings (without id, as it's a singleton)
 export const updateSettingsSchema = z.object({
+  calculator_mode: z.enum(['llm', 'jev']),
   openrouter_api_key: z.string().trim().max(512),
   openrouter_model: z.string().trim().min(1, 'Model is required').max(200),
   system_prompt: z.string().trim().min(1, 'System prompt is required').max(16000),

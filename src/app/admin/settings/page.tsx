@@ -9,7 +9,7 @@ export default async function AdminSettingsPage() {
   const settings = await getAppSettings();
 
   return (
-    <div className="flex-1">
+    <div className="flex-1 min-h-0 overflow-y-auto">
       <div className="flex items-center gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold">Admin Settings</h1>
@@ -18,7 +18,7 @@ export default async function AdminSettingsPage() {
       </div>
       <Separator className="mb-6" />
       <AdminSettingsForm
-        initialSettings={{ openrouter_api_key: '', openrouter_model: settings.openrouter_model, system_prompt: settings.system_prompt }}
+        initialSettings={{ calculator_mode: settings.calculator_mode ?? 'llm', openrouter_api_key: '', openrouter_model: settings.openrouter_model, system_prompt: settings.system_prompt }}
         hasApiKey={Boolean(settings.openrouter_api_key)}
       />
     </div>

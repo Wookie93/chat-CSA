@@ -1,14 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronRight, Truck, Package } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Accordion } from 'radix-ui';
+import { ChevronDown, Truck, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 
 interface PackageItem {
     id: string;
@@ -76,51 +70,39 @@ const sections: SidebarSection[] = [
 ];
 
 export function Sidebar() {
-    const [openSections, setOpenSections] = useState<Record<string, boolean>>({});
-
-    const toggleSection = (id: string) => {
-        setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
-    };
-
     return (
         <aside
             id="main-sidebar"
+            aria-label="Transport i pakiety"
             className="w-56 shrink-0 bg-background overflow-y-auto"
         >
-            <div className="pt-4 pb-3 px-2 space-y-1">
+            <Accordion.Root type="multiple" className="space-y-2 px-4 pt-4 pb-3">
                 {sections.map((section) => (
-                    <Collapsible
+                    <Accordion.Item
                         key={section.id}
-                        open={openSections[section.id] || false}
-                        onOpenChange={() => toggleSection(section.id)}
+                        value={section.id}
+                        className="overflow-hidden rounded-xl border bg-background"
                     >
-                        <CollapsibleTrigger asChild>
-                            <Button
+                        <Accordion.Header>
+                            <Accordion.Trigger
                                 id={`sidebar-section-${section.id}`}
-                                variant="ghost"
-                                className="w-full justify-between h-[3.15rem] px-3 text-lg font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
+                                className="group flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left text-sm font-medium hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                             >
-                                <span className="flex items-center gap-2">
-                                    <section.icon className="h-6 w-6" />
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <section.icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                                     {section.label}
                                 </span>
-                                <ChevronRight
-                                    className={`h-6 w-6 transition-transform duration-200 ${
-                                        openSections[section.id] ? 'rotate-90' : ''
-                                    }`}
-                                />
-                            </Button>
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="pl-6 pr-2 py-1">
+                                <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+                            </Accordion.Trigger>
+                        </Accordion.Header>
+                        <Accordion.Content className="border-t px-3 pt-3 pb-3">
                             {section.children || (
-                                <p className="text-xs text-muted-foreground/60 py-2 px-2">
-                                    Brak elementów
-                                </p>
+                                <p className="text-sm text-muted-foreground">Brak elementów</p>
                             )}
-                        </CollapsibleContent>
-                    </Collapsible>
+                        </Accordion.Content>
+                    </Accordion.Item>
                 ))}
-            </div>
+            </Accordion.Root>
         </aside>
     );
 }

@@ -17,7 +17,7 @@ for(const entry of cases){
   try{
     const c=await analyzeThread({thread:{wiadomosci:[{tekst:entry.text}],ostrzezenia:[]},settings});
     const quote=priceOrder(c.order,settings.jev.catalog);
-    const actual={people:c.order.people,billingPeople:c.order.billingPeople,date:c.order.date,participants:c.order.participants,
+    const actual={matchedNames:c.matches.filter(m=>m.status==='matched').map(m=>m.name),issues:c.issues,people:c.order.people,billingPeople:c.order.billingPeople,date:c.order.date,participants:c.order.participants,
       totalGrosz:quote.totalGrosz,quoteStatus:quote.status,quote:c.intents.quote,availability:c.intents.availability};
     const fields=Object.fromEntries(Object.entries(entry.expected).map(([key,value])=>[key,{pass:isDeepStrictEqual(actual[key],value),expected:value,actual:actual[key]}]));
     rows.push({id:entry.id,pass:Object.values(fields).every(f=>f.pass),ms:Date.now()-started,fields,issues:c.issues,metrics:c.metrics});

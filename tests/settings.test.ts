@@ -1,7 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ update: vi.fn(), upsert: vi.fn(), eq: vi.fn(), select: vi.fn(), maybeSingle: vi.fn() }));
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({ from: () => mocks }) }));
-import { updateAppSettings } from '@/lib/supabase';
+import { updateAppSettings, updateCalculatorMode } from '@/lib/supabase';
 beforeEach(() => {
   vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://db.test');
   vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'test-only');
@@ -25,4 +25,22 @@ it('upserts a new key only when explicitly provided', async () => {
   await updateAppSettings({ openrouter_api_key: 'new-key', openrouter_model: 'test/model', system_prompt: 'hello' });
   expect(mocks.upsert.mock.calls[0][0].openrouter_api_key).toBe('new-key');
   expect(mocks.update).not.toHaveBeenCalled();
+});
+
+it('saves the calculator mode without replacing the existing API key', async () => {
+  await updateAppSettings({ calculator_mode: 'jev', openrouter_api_key: '', openrouter_model: 'test/model', system_prompt: 'hello' });
+  expect(mocks.update.mock.calls[0][0].calculator_mode).toBe('jev');
+  expect(mocks.update.mock.calls[0][0]).not.toHaveProperty('openrouter_api_key');
+});
+
+it('switches modes without overwriting model, prompt or API key', async () => {
+  await updateCalculatorMode('llm');
+  expect(mocks.update).toHaveBeenCalledWith({ calculator_mode: 'llm', updated_at: expect.any(String) });
+  expect(mocks.eq).toHaveBeenCalledWith('id', '550e8400-e29b-41d4-a716-446655440000');
+  expect(mocks.upsert).not.toHaveBeenCalled();
+});
+
+it('reports an unsuccessful mode change when no settings row is updated', async () => {
+  mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
+  await expect(updateCalculatorMode('jev')).rejects.toThrow('Failed to update calculator mode');
 });

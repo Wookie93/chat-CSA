@@ -124,6 +124,11 @@
 /* ─── Synonym clickable words ─── */
 
 .synonym-word {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  text-align: inherit;
   cursor: pointer;
   border-radius: 3px;
   padding: 0 2px;
@@ -138,6 +143,11 @@
 .synonym-word:hover {
   background-color: var(--accent);
   text-decoration-color: var(--primary);
+}
+
+.synonym-word:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 .synonym-word-active {

@@ -1,0 +1,711 @@
+{
+  "date": "2026-10-07",
+  "model": "typesafe/jev-1.13",
+  "scope": "8 synthetic messages; product recognition and deterministic totals, not availability or Gmail delivery",
+  "passed": 8,
+  "samples": 8,
+  "reportedCostUsd": 0.0076275779999999994,
+  "results": [
+    {
+      "id": "clock17-shots",
+      "pass": true,
+      "names": [
+        "Glock 17"
+      ],
+      "totalGrosz": 21000,
+      "status": "complete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "1",
+          "confidence": 0.99
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.62
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.86
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "time": {
+          "choice": "missing",
+          "confidence": 0.68
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 0.98
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.94
+        },
+        "match_1": {
+          "choice": "item:gun-1",
+          "confidence": 1
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.92
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "p1_gun-1": {
+          "choice": "20",
+          "confidence": 1
+        }
+      },
+      "costUsd": 0.0008230739999999999
+    },
+    {
+      "id": "typos-no-quantity",
+      "pass": true,
+      "names": [
+        "Glock 17",
+        "P08 Luger"
+      ],
+      "totalGrosz": null,
+      "status": "incomplete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "2",
+          "confidence": 0.99
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 0.98
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 0.97
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 0.98
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.84
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.83
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "time": {
+          "choice": "missing",
+          "confidence": 0.52
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 1
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.98
+        },
+        "match_1": {
+          "choice": "item:gun-1",
+          "confidence": 0.97
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.97
+        },
+        "match_2": {
+          "choice": "item:gun-12",
+          "confidence": 1
+        },
+        "source_2": {
+          "choice": "1",
+          "confidence": 0.97
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 0.97
+        },
+        "p1_gun-1": {
+          "choice": "missing",
+          "confidence": 0.88
+        },
+        "p1_gun-12": {
+          "choice": "missing",
+          "confidence": 0.9
+        }
+      },
+      "costUsd": 0.001068984
+    },
+    {
+      "id": "default-glock",
+      "pass": true,
+      "names": [
+        "Glock 17"
+      ],
+      "totalGrosz": 15000,
+      "status": "complete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "1",
+          "confidence": 0.98
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 0.98
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 0.92
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 0.99
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "missing",
+          "confidence": 0.46
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.86
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.97
+        },
+        "time": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 0.98
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.94
+        },
+        "match_1": {
+          "choice": "item:gun-1",
+          "confidence": 1
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.96
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 0.98
+        },
+        "p1_gun-1": {
+          "choice": "10",
+          "confidence": 0.95
+        }
+      },
+      "costUsd": 0.0008223179999999999
+    },
+    {
+      "id": "explicit-glock19",
+      "pass": true,
+      "names": [
+        "Glock 19"
+      ],
+      "totalGrosz": 15000,
+      "status": "complete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "1",
+          "confidence": 0.97
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 0.97
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 0.91
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 0.99
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.46
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.89
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.98
+        },
+        "time": {
+          "choice": "missing",
+          "confidence": 1
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 1
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.92
+        },
+        "match_1": {
+          "choice": "item:gun-2",
+          "confidence": 0.99
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.97
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 0.92
+        },
+        "p1_gun-2": {
+          "choice": "10",
+          "confidence": 0.98
+        }
+      },
+      "costUsd": 0.000822234
+    },
+    {
+      "id": "two-typos-with-quantities",
+      "pass": true,
+      "names": [
+        "Glock 17",
+        "P08 Luger"
+      ],
+      "totalGrosz": 22000,
+      "status": "complete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "2",
+          "confidence": 1
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 0.98
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.58
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.85
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "time": {
+          "choice": "missing",
+          "confidence": 0.94
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 1
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "match_1": {
+          "choice": "item:gun-1",
+          "confidence": 1
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.95
+        },
+        "match_2": {
+          "choice": "item:gun-12",
+          "confidence": 1
+        },
+        "source_2": {
+          "choice": "1",
+          "confidence": 0.99
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "p1_gun-1": {
+          "choice": "10",
+          "confidence": 1
+        },
+        "p1_gun-12": {
+          "choice": "7",
+          "confidence": 0.99
+        }
+      },
+      "costUsd": 0.001071252
+    },
+    {
+      "id": "two-people",
+      "pass": true,
+      "names": [
+        "Glock 17",
+        "P08 Luger"
+      ],
+      "totalGrosz": 31000,
+      "status": "complete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "2",
+          "confidence": 0.99
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "2",
+          "confidence": 1
+        },
+        "billingPeople": {
+          "choice": "2",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.53
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.81
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "time": {
+          "choice": "17:00",
+          "confidence": 0.65
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 1
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.98
+        },
+        "match_1": {
+          "choice": "item:gun-1",
+          "confidence": 1
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.97
+        },
+        "match_2": {
+          "choice": "item:gun-12",
+          "confidence": 1
+        },
+        "source_2": {
+          "choice": "1",
+          "confidence": 0.99
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "p1_gun-1": {
+          "choice": "10",
+          "confidence": 1
+        },
+        "p1_gun-12": {
+          "choice": "none",
+          "confidence": 1
+        },
+        "p2_complete": {
+          "choice": "yes",
+          "confidence": 0.97
+        },
+        "p2_gun-1": {
+          "choice": "none",
+          "confidence": 1
+        },
+        "p2_gun-12": {
+          "choice": "7",
+          "confidence": 0.99
+        }
+      },
+      "costUsd": 0.001374072
+    },
+    {
+      "id": "explicit-glock19x",
+      "pass": true,
+      "names": [
+        "Glock 19X"
+      ],
+      "totalGrosz": 15000,
+      "status": "complete",
+      "issues": [],
+      "answers": {
+        "productCount": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 0.98
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 0.94
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.46
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.83
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "time": {
+          "choice": "missing",
+          "confidence": 1
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 0.99
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.97
+        },
+        "match_1": {
+          "choice": "item:gun-3",
+          "confidence": 1
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.95
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 0.98
+        },
+        "p1_gun-3": {
+          "choice": "10",
+          "confidence": 0.96
+        }
+      },
+      "costUsd": 0.00082257
+    },
+    {
+      "id": "invalid-shot-count",
+      "pass": true,
+      "names": [
+        "Glock 17"
+      ],
+      "totalGrosz": null,
+      "status": "invalid",
+      "issues": [
+        "Niepewny triaż."
+      ],
+      "answers": {
+        "productCount": {
+          "choice": "1",
+          "confidence": 0.96
+        },
+        "quote": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "availability": {
+          "choice": "no",
+          "confidence": 0.82
+        },
+        "review": {
+          "choice": "no",
+          "confidence": 1
+        },
+        "language": {
+          "choice": "pl",
+          "confidence": 1
+        },
+        "people": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "billingPeople": {
+          "choice": "1",
+          "confidence": 1
+        },
+        "day": {
+          "choice": "7",
+          "confidence": 0.63
+        },
+        "month": {
+          "choice": "missing",
+          "confidence": 0.74
+        },
+        "year": {
+          "choice": "missing",
+          "confidence": 0.97
+        },
+        "time": {
+          "choice": "17:00",
+          "confidence": 0.83
+        },
+        "duration": {
+          "choice": "missing",
+          "confidence": 0.93
+        },
+        "unsupported": {
+          "choice": "no",
+          "confidence": 0.97
+        },
+        "match_1": {
+          "choice": "item:gun-1",
+          "confidence": 1
+        },
+        "source_1": {
+          "choice": "1",
+          "confidence": 0.91
+        },
+        "p1_complete": {
+          "choice": "yes",
+          "confidence": 1
+        },
+        "p1_gun-1": {
+          "choice": "15",
+          "confidence": 1
+        }
+      },
+      "costUsd": 0.0008230739999999999
+    }
+  ]
+}

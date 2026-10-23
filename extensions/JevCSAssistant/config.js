@@ -131,10 +131,16 @@ export const KLUCZ_WZORCOW = 'wzorce';
 /** Scala zapisane ustawienia z domyślnymi (płytko, per sekcja). */
 export function zUstawieniami(zapisane = {}) {
   const central = activeConfiguration(zapisane);
+  const jev = { ...DOMYSLNE_USTAWIENIA.jev, ...(zapisane.jev || {}), ...(central ? {catalog:central.catalog,templates:central.templates,availabilityPolicy:central.availabilityPolicy} : {}) };
+  // User-approved naming policy also applies to existing local/central catalogs.
+  if (jev.catalog?.items?.some(item => item.name === 'Glock')) {
+    jev.catalog = { ...jev.catalog, version: `${jev.catalog.version}-glock17-v1`, items: jev.catalog.items.map(item =>
+      item.name === 'Glock' ? { ...item, name: 'Glock 17', aliases: [...new Set(['Glock', ...(item.aliases || [])])].slice(0, 20) } : item) };
+  }
   return {
     ...DOMYSLNE_USTAWIENIA,
     ...zapisane,
-    jev: { ...DOMYSLNE_USTAWIENIA.jev, ...(zapisane.jev || {}), ...(central ? {catalog:central.catalog,templates:central.templates,availabilityPolicy:central.availabilityPolicy} : {}) },
+    jev,
     modele: { ...DOMYSLNE_USTAWIENIA.modele, ...(zapisane.modele || {}) },
     prompty: { ...DOMYSLNE_USTAWIENIA.prompty, ...(zapisane.prompty || {}) },
     semiauto: { ...DOMYSLNE_USTAWIENIA.semiauto, ...(zapisane.semiauto || {}) },
